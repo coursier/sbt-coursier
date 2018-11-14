@@ -1,10 +1,11 @@
-package coursier
+package coursier.sbtcoursier
 
 import java.io.OutputStreamWriter
 
-import coursier.core.Configuration
+import coursier.{Cache, CachePolicy, TermDisplay}
+import coursier.core.{Configuration, ResolutionProcess}
 import sbt.librarymanagement.{Configuration => _, Resolver => _, _}
-import sbt.{Configuration => _, _}
+import sbt.{Cache => _, Configuration => _, _}
 import sbt.Keys._
 
 object CoursierPlugin extends AutoPlugin {
@@ -64,16 +65,16 @@ object CoursierPlugin extends AutoPlugin {
   import autoImport._
 
   lazy val treeSettings = Seq(
-    coursierDependencyTree := Tasks.coursierDependencyTreeTask(
+    coursierDependencyTree := DisplayTasks.coursierDependencyTreeTask(
       inverse = false
     ).value,
-    coursierDependencyInverseTree := Tasks.coursierDependencyTreeTask(
+    coursierDependencyInverseTree := DisplayTasks.coursierDependencyTreeTask(
       inverse = true
     ).value,
     coursierWhatDependsOn := Def.inputTaskDyn {
       import sbt.complete.DefaultParsers._
       val input = token(SpaceClass ~ NotQuoted, "<arg>").parsed._2
-      Tasks.coursierWhatDependsOnTask(input)
+      DisplayTasks.coursierWhatDependsOnTask(input)
     }.evaluated
   )
 
@@ -165,11 +166,10 @@ object CoursierPlugin extends AutoPlugin {
   ) = hackHack ++ Seq(
     clean := {
       val noWarningPlz = clean.value
-      Tasks.resolutionsCache.clear()
-      Tasks.reportsCache.clear()
+      SbtCoursierCache.default.clear()
     },
-    coursierResolvers := Tasks.coursierResolversTask.value,
-    coursierRecursiveResolvers := Tasks.coursierRecursiveResolversTask.value,
+    coursierResolvers := RepositoriesTasks.coursierResolversTask.value,
+    coursierRecursiveResolvers := RepositoriesTasks.coursierRecursiveResolversTask.value,
     coursierSbtResolvers := {
 
       // TODO Add docker-based integration test for that, see https://github.com/coursier/coursier/issues/632
@@ -201,38 +201,38 @@ object CoursierPlugin extends AutoPlugin {
           !r.name.startsWith("local-preloaded")
         }
     },
-    coursierFallbackDependencies := Tasks.coursierFallbackDependenciesTask.value,
-    coursierArtifacts := Tasks.artifactFilesOrErrors(withClassifiers = false).value,
-    coursierSignedArtifacts := Tasks.artifactFilesOrErrors(withClassifiers = false, includeSignatures = true).value,
-    coursierClassifiersArtifacts := Tasks.artifactFilesOrErrors(
+    coursierFallbackDependencies := InputsTasks.coursierFallbackDependenciesTask.value,
+    coursierArtifacts := ArtifactsTasks.artifactFilesOrErrors(withClassifiers = false).value,
+    coursierSignedArtifacts := ArtifactsTasks.artifactFilesOrErrors(withClassifiers = false, includeSignatures = true).value,
+    coursierClassifiersArtifacts := ArtifactsTasks.artifactFilesOrErrors(
       withClassifiers = true
     ).value,
-    coursierSbtClassifiersArtifacts := Tasks.artifactFilesOrErrors(
+    coursierSbtClassifiersArtifacts := ArtifactsTasks.artifactFilesOrErrors(
       withClassifiers = true,
       sbtClassifiers = true
     ).value,
-    update := Tasks.updateTask(
+    update := UpdateTasks.updateTask(
       shadedConfigOpt,
       withClassifiers = false
     ).value,
-    updateClassifiers := Tasks.updateTask(
+    updateClassifiers := UpdateTasks.updateTask(
       shadedConfigOpt,
       withClassifiers = true,
       ignoreArtifactErrors = true
     ).value,
-    updateSbtClassifiers.in(Defaults.TaskGlobal) := Tasks.updateTask(
+    updateSbtClassifiers.in(Defaults.TaskGlobal) := UpdateTasks.updateTask(
       shadedConfigOpt,
       withClassifiers = true,
       sbtClassifiers = true,
       ignoreArtifactErrors = true
     ).value,
-    coursierProject := Tasks.coursierProjectTask.value,
-    coursierConfigGraphs := Tasks.ivyGraphsTask.value,
-    coursierInterProjectDependencies := Tasks.coursierInterProjectDependenciesTask.value,
-    coursierPublications := Tasks.coursierPublicationsTask(packageConfigs: _*).value,
+    coursierProject := InputsTasks.coursierProjectTask.value,
+    coursierConfigGraphs := InputsTasks.ivyGraphsTask.value,
+    coursierInterProjectDependencies := InputsTasks.coursierInterProjectDependenciesTask.value,
+    coursierPublications := ArtifactsTasks.coursierPublicationsTask(packageConfigs: _*).value,
     coursierSbtClassifiersModule := classifiersModule.in(updateSbtClassifiers).value,
-    coursierConfigurations := Tasks.coursierConfigurationsTask(None).value,
-    coursierParentProjectCache := Tasks.parentProjectCacheTask.value,
+    coursierConfigurations := InputsTasks.coursierConfigurationsTask(None).value,
+    coursierParentProjectCache := InputsTasks.parentProjectCacheTask.value,
     coursierResolutions := Tasks.resolutionsTask().value,
     Keys.actualCoursierResolution := {
 

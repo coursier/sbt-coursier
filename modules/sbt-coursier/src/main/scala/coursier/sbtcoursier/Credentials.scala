@@ -1,4 +1,4 @@
-package coursier
+package coursier.sbtcoursier
 
 import java.io.{File, FileInputStream}
 import java.util.Properties
