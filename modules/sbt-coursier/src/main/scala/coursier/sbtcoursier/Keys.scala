@@ -3,7 +3,7 @@ package coursier.sbtcoursier
 import java.io.File
 import java.net.URL
 
-import coursier.{Cache, CachePolicy, FileError, ProjectCache}
+import coursier.{Cache, CachePolicy, Credentials, FileError, ProjectCache}
 import coursier.core._
 import sbt.librarymanagement.GetClassifiersModule
 import sbt.{InputKey, Resolver, SettingKey, TaskKey}

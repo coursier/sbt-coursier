@@ -3,6 +3,6 @@ package coursier
 object Helper {
 
   def checkEmpty(): Boolean =
-    SbtCoursierCache.default.isEmpty
+    coursier.sbtcoursier.SbtCoursierCache.default.isEmpty
 
 }
