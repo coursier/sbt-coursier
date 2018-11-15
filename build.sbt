@@ -47,6 +47,21 @@ lazy val `sbt-coursier` = project
     }
   )
 
+lazy val `lm-coursier` = project
+  .in(file("modules/lm-coursier"))
+  .enablePlugins(ContrabandPlugin, JsonCodecPlugin)
+  .dependsOn(`sbt-shared`)
+  .settings(
+    shared,
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % Test,
+    managedSourceDirectories in Compile +=
+      baseDirectory.value / "src" / "main" / "contraband-scala",
+    sourceManaged in (Compile, generateContrabands) := baseDirectory.value / "src" / "main" / "contraband-scala",
+    contrabandFormatsForType in generateContrabands in Compile := DatatypeConfig.getFormats,
+    scalacOptions in (Compile, console) --=
+      Vector("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint")
+  )
+
 lazy val `sbt-pgp-coursier` = project
   .in(file("modules/sbt-pgp-coursier"))
   .enablePlugins(ScriptedPlugin)
@@ -94,7 +109,8 @@ lazy val `sbt-coursier-root` = project
     `sbt-shared`,
     `sbt-coursier`,
     `sbt-pgp-coursier`,
-    `sbt-shading`
+    `sbt-shading`,
+    `lm-coursier`
   )
   .settings(
     shared,
