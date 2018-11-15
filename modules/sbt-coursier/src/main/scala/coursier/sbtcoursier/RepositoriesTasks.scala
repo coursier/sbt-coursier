@@ -19,28 +19,8 @@ object RepositoriesTasks {
     "https://repo1.maven.org/"
   )
 
-  def coursierResolversTask: Def.Initialize[sbt.Task[Seq[Resolver]]] = Def.taskDyn {
-
-    def url(res: Resolver): Option[String] =
-      res match {
-        case m: sbt.librarymanagement.MavenRepository =>
-          Some(m.root)
-        case u: sbt.URLRepository =>
-          u.patterns.artifactPatterns.headOption
-            .orElse(u.patterns.ivyPatterns.headOption)
-        case _ =>
-          None
-      }
-
-    def fastRepo(res: Resolver): Boolean =
-      url(res).exists(u => fastReposBase.exists(u.startsWith))
-    def slowRepo(res: Resolver): Boolean =
-      url(res).exists(u => slowReposBase.exists(u.startsWith))
-
-    val bootResOpt = bootResolvers.value
-    val overrideFlag = overrideBuildResolvers.value
-
-    val resultTask = bootResOpt.filter(_ => overrideFlag) match {
+  private def resultTask(bootResOpt: Option[Seq[Resolver]], overrideFlag: Boolean): Def.Initialize[sbt.Task[Seq[Resolver]]] =
+    bootResOpt.filter(_ => overrideFlag) match {
       case Some(r) => Def.task(r)
       case None =>
         Def.taskDyn {
@@ -58,26 +38,49 @@ object RepositoriesTasks {
         }
     }
 
-    Def.task {
-      val result = resultTask.value
-      val reorderResolvers = coursierReorderResolvers.value
-      val keepPreloaded = coursierKeepPreloaded.value
-
-      val result0 =
-        if (reorderResolvers && result.exists(fastRepo) && result.exists(slowRepo)) {
-          val (slow, other) = result.partition(slowRepo)
-          other ++ slow
-        } else
-          result
-
-      if (keepPreloaded)
-        result0
-      else
-        result0.filter { r =>
-          !r.name.startsWith("local-preloaded")
-        }
+  private def url(res: Resolver): Option[String] =
+    res match {
+      case m: sbt.librarymanagement.MavenRepository =>
+        Some(m.root)
+      case u: sbt.URLRepository =>
+        u.patterns.artifactPatterns.headOption
+          .orElse(u.patterns.ivyPatterns.headOption)
+      case _ =>
+        None
     }
-  }
+
+  private def fastRepo(res: Resolver): Boolean =
+    url(res).exists(u => fastReposBase.exists(u.startsWith))
+
+  private def slowRepo(res: Resolver): Boolean =
+    url(res).exists(u => slowReposBase.exists(u.startsWith))
+
+  def coursierResolversTask: Def.Initialize[sbt.Task[Seq[Resolver]]] =
+    Def.taskDyn {
+
+      val bootResOpt = bootResolvers.value
+      val overrideFlag = overrideBuildResolvers.value
+
+      Def.task {
+        val result = resultTask(bootResOpt, overrideFlag).value
+        val reorderResolvers = coursierReorderResolvers.value
+        val keepPreloaded = coursierKeepPreloaded.value
+
+        val result0 =
+          if (reorderResolvers && result.exists(fastRepo) && result.exists(slowRepo)) {
+            val (slow, other) = result.partition(slowRepo)
+            other ++ slow
+          } else
+            result
+
+        if (keepPreloaded)
+          result0
+        else
+          result0.filter { r =>
+            !r.name.startsWith("local-preloaded")
+          }
+      }
+    }
 
   def coursierRecursiveResolversTask: Def.Initialize[sbt.Task[Seq[Resolver]]] =
     Def.taskDyn {

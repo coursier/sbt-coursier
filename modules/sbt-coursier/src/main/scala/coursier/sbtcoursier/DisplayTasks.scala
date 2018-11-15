@@ -17,7 +17,7 @@ object DisplayTasks {
   private def coursierResolutionTask(
     sbtClassifiers: Boolean = false,
     ignoreArtifactErrors: Boolean = false
-  ): Def.Initialize[sbt.Task[Seq[ResolutionResult]]] = Def.taskDyn {
+  ): Def.Initialize[sbt.Task[Seq[ResolutionResult]]] = {
 
     val currentProjectTask =
       if (sbtClassifiers)
@@ -34,40 +34,43 @@ object DisplayTasks {
           proj.copy(publications = publications)
         }
 
-    val config = Configuration(configuration.value.name)
-    val configs = coursierConfigurations.value
-
-    val includedConfigs = configs.getOrElse(config, Set.empty) + config
-
     Def.taskDyn {
-      val currentProject = currentProjectTask.value
 
-      val resolutionsTask =
-        if (sbtClassifiers)
-          Def.task {
-            val classifiersRes = coursierSbtClassifiersResolution.value
-            Map(currentProject.configurations.keySet -> classifiersRes)
+      val config = Configuration(configuration.value.name)
+      val configs = coursierConfigurations.value
+
+      val includedConfigs = configs.getOrElse(config, Set.empty) + config
+
+      Def.taskDyn {
+        val currentProject = currentProjectTask.value
+
+        val resolutionsTask =
+          if (sbtClassifiers)
+            Def.task {
+              val classifiersRes = coursierSbtClassifiersResolution.value
+              Map(currentProject.configurations.keySet -> classifiersRes)
+            }
+          else
+            Def.task(coursierResolutions.value)
+
+        Def.task {
+          val resolutions = resolutionsTask.value
+
+          for {
+            (subGraphConfigs, res) <- resolutions.toSeq
+            if subGraphConfigs.exists(includedConfigs)
+          } yield {
+
+            val dependencies0 = currentProject.dependencies.collect {
+              case (cfg, dep) if includedConfigs(cfg) && subGraphConfigs(cfg) => dep
+            }.sortBy { dep =>
+              (dep.module.organization, dep.module.name, dep.version)
+            }
+
+            val subRes = res.subset(dependencies0.toSet)
+
+            ResolutionResult(subGraphConfigs, subRes, dependencies0)
           }
-        else
-          Def.task(coursierResolutions.value)
-
-      Def.task {
-        val resolutions = resolutionsTask.value
-
-        for {
-          (subGraphConfigs, res) <- resolutions.toSeq
-          if subGraphConfigs.exists(includedConfigs)
-        } yield {
-
-          val dependencies0 = currentProject.dependencies.collect {
-            case (cfg, dep) if includedConfigs(cfg) && subGraphConfigs(cfg) => dep
-          }.sortBy { dep =>
-            (dep.module.organization, dep.module.name, dep.version)
-          }
-
-          val subRes = res.subset(dependencies0.toSet)
-
-          ResolutionResult(subGraphConfigs, subRes, dependencies0)
         }
       }
     }

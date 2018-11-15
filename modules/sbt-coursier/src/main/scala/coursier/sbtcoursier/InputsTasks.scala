@@ -48,11 +48,10 @@ object InputsTasks {
 
       val allDependenciesTask = allDependencies.in(projectRef).get(state)
 
-      lazy val projId = projectID.in(projectRef).get(state)
-      lazy val sv = scalaVersion.in(projectRef).get(state)
-      lazy val sbv = scalaBinaryVersion.in(projectRef).get(state)
+      val sv = scalaVersion.in(projectRef).get(state)
+      val sbv = scalaBinaryVersion.in(projectRef).get(state)
 
-      lazy val exclusions = {
+      val exclusions = {
 
         var anyNonSupportedExclusionRule = false
 
@@ -77,13 +76,15 @@ object InputsTasks {
         res
       }
 
+      val configMap = configurations
+        .map(cfg => Configuration(cfg.name) -> cfg.extendsConfigs.map(c => Configuration(c.name)))
+        .toMap
+
+      val projId = projectID.in(projectRef).get(state)
+
       Def.task {
 
         val allDependencies = allDependenciesTask.value
-
-        val configMap = configurations
-          .map(cfg => Configuration(cfg.name) -> cfg.extendsConfigs.map(c => Configuration(c.name)))
-          .toMap
 
         val proj = FromSbt.project(
           projId,
