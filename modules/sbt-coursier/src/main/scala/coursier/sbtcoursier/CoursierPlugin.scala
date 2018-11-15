@@ -202,12 +202,12 @@ object CoursierPlugin extends AutoPlugin {
         }
     },
     coursierFallbackDependencies := InputsTasks.coursierFallbackDependenciesTask.value,
-    coursierArtifacts := ArtifactsTasks.artifactFilesOrErrors(withClassifiers = false).value,
-    coursierSignedArtifacts := ArtifactsTasks.artifactFilesOrErrors(withClassifiers = false, includeSignatures = true).value,
-    coursierClassifiersArtifacts := ArtifactsTasks.artifactFilesOrErrors(
+    coursierArtifacts := ArtifactsTasks.artifactsTask(withClassifiers = false).value,
+    coursierSignedArtifacts := ArtifactsTasks.artifactsTask(withClassifiers = false, includeSignatures = true).value,
+    coursierClassifiersArtifacts := ArtifactsTasks.artifactsTask(
       withClassifiers = true
     ).value,
-    coursierSbtClassifiersArtifacts := ArtifactsTasks.artifactFilesOrErrors(
+    coursierSbtClassifiersArtifacts := ArtifactsTasks.artifactsTask(
       withClassifiers = true,
       sbtClassifiers = true
     ).value,
@@ -233,7 +233,7 @@ object CoursierPlugin extends AutoPlugin {
     coursierSbtClassifiersModule := classifiersModule.in(updateSbtClassifiers).value,
     coursierConfigurations := InputsTasks.coursierConfigurationsTask(None).value,
     coursierParentProjectCache := InputsTasks.parentProjectCacheTask.value,
-    coursierResolutions := Tasks.resolutionsTask().value,
+    coursierResolutions := ResolutionTasks.resolutionsTask().value,
     Keys.actualCoursierResolution := {
 
       val config = Configuration(Compile.name)
@@ -248,7 +248,7 @@ object CoursierPlugin extends AutoPlugin {
           sys.error(s"Resolution for configuration $config not found")
         }
     },
-    coursierSbtClassifiersResolution := Tasks.resolutionsTask(
+    coursierSbtClassifiersResolution := ResolutionTasks.resolutionsTask(
       sbtClassifiers = true
     ).value.head._2,
     ivyConfigurations := {

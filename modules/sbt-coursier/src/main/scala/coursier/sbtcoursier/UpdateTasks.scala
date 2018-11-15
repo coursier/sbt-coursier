@@ -2,12 +2,11 @@ package coursier.sbtcoursier
 
 import java.io.File
 
-import coursier.{FileError, FromSbt, ToSbt}
+import coursier.{FromSbt, ToSbt}
 import coursier.core.Resolution.ModuleVersion
 import coursier.core._
 import coursier.sbtcoursier.Keys._
 import coursier.util.Print
-import sbt.librarymanagement.{Artifact => _, Configuration => _, _}
 import sbt.{Def, UpdateReport}
 import sbt.Keys._
 import sbt.util.Logger
@@ -85,96 +84,80 @@ object UpdateTasks {
       }
       .toSet
 
-  private def report(
-    shadedConfigOpt: Option[(String, Configuration)],
-    artifactFilesOrErrors0: Map[Artifact, Either[FileError, File]],
-    classifiers: Option[Seq[Classifier]],
-    configs: Map[Configuration, Set[Configuration]],
-    currentProject: Project,
-    res: Map[Set[Configuration], Resolution],
-    ignoreArtifactErrors: Boolean,
-    includeSignatures: Boolean,
-    sbtBootJarOverrides: Map[(Module, String), File],
+  def update(
+    params: UpdateParams,
     verbosityLevel: Int,
     log: Logger
-  ) = {
+  ): UpdateReport = {
 
-    val configResolutions = res.flatMap {
+    val configResolutions = params.res.flatMap {
       case (configs, r) =>
         configs.iterator.map((_, r))
     }
 
-    def report = {
-
-      val depsByConfig = grouped(currentProject.dependencies)(
-        config =>
-          shadedConfigOpt match {
-            case Some((baseConfig, `config`)) =>
-              Configuration(baseConfig)
-            case _ =>
-              config
-          }
-      )
-
-      if (verbosityLevel >= 2) {
-        val finalDeps = dependenciesWithConfig(
-          configResolutions,
-          depsByConfig.map { case (k, l) => k -> l.toSet },
-          configs
-        )
-
-        val projCache = res.values.foldLeft(Map.empty[ModuleVersion, Project])(_ ++ _.projectCache.mapValues(_._2))
-        val repr = Print.dependenciesUnknownConfigs(finalDeps.toVector, projCache)
-        log.info(repr.split('\n').map("  " + _).mkString("\n"))
-      }
-
-      val artifactFiles = artifactFilesOrErrors0.collect {
-        case (artifact, Right(file)) =>
-          artifact -> file
-      }
-
-      val artifactErrors = artifactFilesOrErrors0
-        .toVector
-        .collect {
-          case (a, Left(err)) if !a.optional || !err.notFound =>
-            a -> err
+    val depsByConfig = grouped(params.currentProject.dependencies)(
+      config =>
+        params.shadedConfigOpt match {
+          case Some((baseConfig, `config`)) =>
+            Configuration(baseConfig)
+          case _ =>
+            config
         }
+    )
 
-      if (artifactErrors.nonEmpty) {
-        val error = ResolutionError.DownloadErrors(artifactErrors.map(_._2))
+    if (verbosityLevel >= 2) {
+      val finalDeps = dependenciesWithConfig(
+        configResolutions,
+        depsByConfig.map { case (k, l) => k -> l.toSet },
+        params.configs
+      )
 
-        if (ignoreArtifactErrors)
-          log.warn(error.description(verbosityLevel >= 1))
-        else
-          error.throwException()
+      val projCache = params.res.values.foldLeft(Map.empty[ModuleVersion, Project])(_ ++ _.projectCache.mapValues(_._2))
+      val repr = Print.dependenciesUnknownConfigs(finalDeps.toVector, projCache)
+      log.info(repr.split('\n').map("  " + _).mkString("\n"))
+    }
+
+    val artifactFiles = params.artifacts.collect {
+      case (artifact, Right(file)) =>
+        artifact -> file
+    }
+
+    val artifactErrors = params
+      .artifacts
+      .toVector
+      .collect {
+        case (a, Left(err)) if !a.optional || !err.notFound =>
+          a -> err
       }
 
-      // can be non empty only if ignoreArtifactErrors is true or some optional artifacts are not found
-      val erroredArtifacts = artifactFilesOrErrors0.collect {
-        case (artifact, Left(_)) =>
-          artifact
-      }.toSet
+    if (artifactErrors.nonEmpty) {
+      val error = ResolutionError.DownloadErrors(artifactErrors.map(_._2))
 
-      ToSbt.updateReport(
-        depsByConfig,
-        configResolutions,
-        configs,
-        classifiers,
-        artifactFileOpt(
-          sbtBootJarOverrides,
-          artifactFiles,
-          erroredArtifacts
-        ),
-        log,
-        includeSignatures = includeSignatures
-      )
+      if (params.ignoreArtifactErrors)
+        log.warn(error.description(verbosityLevel >= 1))
+      else
+        error.throwException()
     }
 
-    // let's update only one module at once, for a better output
-    // Downloads are already parallel, no need to parallelize further anyway
-    synchronized {
-      report
-    }
+    // can be non empty only if ignoreArtifactErrors is true or some optional artifacts are not found
+    val erroredArtifacts = params.artifacts.collect {
+      case (artifact, Left(_)) =>
+        artifact
+    }.toSet
+
+    ToSbt.updateReport(
+      depsByConfig,
+      configResolutions,
+      params.configs,
+      params.classifiers,
+      artifactFileOpt(
+        params.sbtBootJarOverrides,
+        artifactFiles,
+        erroredArtifacts
+      ),
+      log,
+      includeSignatures = params.includeSignatures
+    )
   }
 
   private def grouped[K, V](map: Seq[(K, V)])(mapKey: K => K): Map[K, Seq[V]] =
@@ -190,26 +173,15 @@ object UpdateTasks {
     sbtClassifiers: Boolean = false,
     ignoreArtifactErrors: Boolean = false,
     includeSignatures: Boolean = false
-  ): Def.Initialize[sbt.Task[UpdateReport]] = Def.taskDyn {
-
-    val so = Organization(scalaOrganization.value)
-    val internalSbtScalaProvider = appConfiguration.value.provider.scalaProvider
-    val sbtBootJarOverrides = SbtBootJars(
-      so, // this seems plain wrong - this assumes that the scala org of the project is the same
-      // as the one that started SBT. This will scrap the scala org specific JARs by the ones
-      // that booted SBT, even if the latter come from the standard org.scala-lang org.
-      // But SBT itself does it this way, and not doing so may make two different versions
-      // of the scala JARs land in the classpath...
-      internalSbtScalaProvider.version(),
-      internalSbtScalaProvider.jars()
-    )
-
-    val sv = scalaVersion.value
-    val sbv = scalaBinaryVersion.value
+  ): Def.Initialize[sbt.Task[UpdateReport]] = {
 
     val currentProjectTask =
       if (sbtClassifiers)
-        Def.task(FromSbt.sbtClassifiersProject(coursierSbtClassifiersModule.value, sv, sbv))
+        Def.task {
+          val sv = scalaVersion.value
+          val sbv = scalaBinaryVersion.value
+          FromSbt.sbtClassifiersProject(coursierSbtClassifiersModule.value, sv, sbv)
+        }
       else
         Def.task {
           val proj = coursierProject.value
@@ -217,10 +189,6 @@ object UpdateTasks {
 
           proj.copy(publications = publications)
         }
-
-    val log = streams.value.log
-
-    val verbosityLevel = coursierVerbosity.value
 
     val resTask =
       if (withClassifiers && sbtClassifiers)
@@ -277,6 +245,22 @@ object UpdateTasks {
 
     Def.taskDyn {
 
+      val so = Organization(scalaOrganization.value)
+      val internalSbtScalaProvider = appConfiguration.value.provider.scalaProvider
+      val sbtBootJarOverrides = SbtBootJars(
+        so, // this seems plain wrong - this assumes that the scala org of the project is the same
+        // as the one that started SBT. This will scrap the scala org specific JARs by the ones
+        // that booted SBT, even if the latter come from the standard org.scala-lang org.
+        // But SBT itself does it this way, and not doing so may make two different versions
+        // of the scala JARs land in the classpath...
+        internalSbtScalaProvider.version(),
+        internalSbtScalaProvider.jars()
+      )
+
+      val log = streams.value.log
+
+      val verbosityLevel = coursierVerbosity.value
+
       val currentProject = currentProjectTask.value
       val res = resTask.value
 
@@ -298,7 +282,7 @@ object UpdateTasks {
             val classifiers = classifiersTask.value
             val configs = configsTask.value
 
-            val rep = report(
+            val params = UpdateParams(
               shadedConfigOpt,
               artifactFilesOrErrors0,
               classifiers,
@@ -307,10 +291,13 @@ object UpdateTasks {
               res,
               ignoreArtifactErrors,
               includeSignatures,
-              sbtBootJarOverrides,
-              verbosityLevel,
-              log
+              sbtBootJarOverrides
             )
+
+            val rep =
+              Lock.lock.synchronized {
+                update(params, verbosityLevel, log)
+              }
             SbtCoursierCache.default.putReport(key, rep)
             rep
           }
