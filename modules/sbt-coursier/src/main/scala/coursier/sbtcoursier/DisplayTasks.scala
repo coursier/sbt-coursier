@@ -1,6 +1,5 @@
 package coursier.sbtcoursier
 
-import coursier.FromSbt
 import coursier.core._
 import coursier.sbtcoursier.Keys._
 import coursier.util.Print.Colors

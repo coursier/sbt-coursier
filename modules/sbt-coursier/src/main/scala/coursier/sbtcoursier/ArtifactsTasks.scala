@@ -1,25 +1,19 @@
 package coursier.sbtcoursier
 
 import java.io.File
-import java.util.concurrent.{ExecutorService, Executors}
 
-import coursier.{Artifact, Cache, CachePolicy, FileError, FromSbt}
+import coursier.{Artifact, FileError}
 import coursier.core._
-import coursier.interop.scalaz._
 import coursier.sbtcoursier.Keys._
 import coursier.sbtcoursier.Structure._
 import sbt.librarymanagement.{Artifact => _, Configuration => _, _}
 import sbt.Def
 import sbt.Keys._
-import sbt.util.Logger
-import scalaz.concurrent.{Strategy, Task}
-
-import scala.concurrent.duration.Duration
 
 object ArtifactsTasks {
 
   def coursierPublicationsTask(
-    configsMap: (sbt.Configuration, Configuration)*
+    configsMap: (sbt.librarymanagement.Configuration, Configuration)*
   ): Def.Initialize[sbt.Task[Seq[(Configuration, Publication)]]] =
     Def.task {
 
@@ -149,88 +143,6 @@ object ArtifactsTasks {
       sbtArtifactsPublication ++ extraSbtArtifactsPublication
     }
 
-  def artifacts(
-    params: ArtifactsParams,
-    verbosityLevel: Int,
-    log: Logger
-  ): Map[Artifact, Either[FileError, File]] = {
-
-    val allArtifacts0 = params.res.flatMap(_.dependencyArtifacts(params.classifiers)).map(_._3)
-
-    val allArtifacts =
-      if (params.includeSignatures)
-        allArtifacts0.flatMap { a =>
-          val sigOpt = a.extra.get("sig")
-          Seq(a) ++ sigOpt.toSeq
-        }
-      else
-        allArtifacts0
-
-    // let's update only one module at once, for a better output
-    // Downloads are already parallel, no need to parallelize further anyway
-    Lock.lock.synchronized {
-
-      var pool: ExecutorService = null
-      var artifactsLogger: Cache.Logger = null
-
-      val printOptionalMessage = verbosityLevel >= 0 && verbosityLevel <= 1
-
-      val artifactFilesOrErrors = try {
-        pool = Executors.newFixedThreadPool(params.parallelDownloads, Strategy.DefaultDaemonThreadFactory)
-        artifactsLogger = params.createLogger()
-
-        val artifactFileOrErrorTasks = allArtifacts.toVector.distinct.map { a =>
-          def f(p: CachePolicy) =
-            Cache.file[Task](
-              a,
-              params.cache,
-              p,
-              checksums = params.artifactsChecksums,
-              logger = Some(artifactsLogger),
-              pool = pool,
-              ttl = params.ttl
-            )
-
-          params.cachePolicies.tail
-            .foldLeft(f(params.cachePolicies.head))(_ orElse f(_))
-            .run
-            .map((a, _))
-        }
-
-        val artifactInitialMessage =
-          if (verbosityLevel >= 0)
-            s"Fetching artifacts of ${params.projectName}" +
-              (if (params.sbtClassifiers) " (sbt classifiers)" else "")
-          else
-            ""
-
-        if (verbosityLevel >= 2)
-          log.info(artifactInitialMessage)
-
-        artifactsLogger.init(if (printOptionalMessage) log.info(artifactInitialMessage))
-
-        Task.gatherUnordered(artifactFileOrErrorTasks).unsafePerformSyncAttempt.toEither match {
-          case Left(ex) =>
-            ResolutionError.UnknownDownloadException(ex)
-              .throwException()
-          case Right(l) =>
-            l.toMap
-        }
-      } finally {
-        if (pool != null)
-          pool.shutdown()
-        if (artifactsLogger != null)
-          if ((artifactsLogger.stopDidPrintSomething() && printOptionalMessage) || verbosityLevel >= 2)
-            log.info(
-              s"Fetched artifacts of ${params.projectName}" +
-                (if (params.sbtClassifiers) " (sbt classifiers)" else "")
-            )
-      }
-
-      artifactFilesOrErrors
-    }
-  }
-
   def artifactsTask(
     withClassifiers: Boolean,
     sbtClassifiers: Boolean = false,
@@ -285,7 +197,7 @@ object ArtifactsTasks {
         sbtClassifiers
       )
 
-      artifacts(
+      ArtifactsRun.artifacts(
         params,
         verbosityLevel,
         log

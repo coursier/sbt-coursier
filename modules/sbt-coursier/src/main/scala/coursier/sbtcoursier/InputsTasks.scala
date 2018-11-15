@@ -2,7 +2,7 @@ package coursier.sbtcoursier
 
 import java.net.URL
 
-import coursier.{FromSbt, ProjectCache}
+import coursier.ProjectCache
 import coursier.core._
 import coursier.sbtcoursier.Keys._
 import coursier.sbtcoursier.Structure._

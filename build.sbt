@@ -24,6 +24,7 @@ lazy val `sbt-shared` = project
     libraryDependencies ++= Seq(
       "io.get-coursier" %% "coursier" % coursierVersion,
       "io.get-coursier" %% "coursier-cache" % coursierVersion,
+      "io.get-coursier" %% "coursier-extra" % coursierVersion,
       "org.scala-sbt" %% "librarymanagement-ivy" % "1.0.2"
     )
   )
@@ -36,12 +37,7 @@ lazy val `sbt-coursier` = project
     plugin,
     libraryDependencies += "com.lihaoyi" %% "utest" % "0.6.4" % Test,
     testFrameworks += new TestFramework("utest.runner.Framework"),
-    libraryDependencies ++= Seq(
-      "io.get-coursier" %% "coursier" % coursierVersion,
-      "io.get-coursier" %% "coursier-cache" % coursierVersion,
-      "io.get-coursier" %% "coursier-extra" % coursierVersion,
-      "io.get-coursier" %% "coursier-scalaz-interop" % coursierVersion
-    ),
+    libraryDependencies +="io.get-coursier" %% "coursier-scalaz-interop" % coursierVersion,
     scriptedDependencies := {
       scriptedDependencies.value
 
