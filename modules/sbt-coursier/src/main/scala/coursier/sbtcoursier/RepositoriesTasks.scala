@@ -2,22 +2,11 @@ package coursier.sbtcoursier
 
 import coursier.sbtcoursier.Keys._
 import coursier.sbtcoursier.Structure._
-import sbt.{Classpaths, Def, Resolver}
+import sbt.{Classpaths, Def}
 import sbt.Keys._
+import sbt.librarymanagement.Resolver
 
 object RepositoriesTasks {
-
-  private val slowReposBase = Seq(
-    "https://repo.typesafe.com/",
-    "https://repo.scala-sbt.org/",
-    "http://repo.typesafe.com/",
-    "http://repo.scala-sbt.org/"
-  )
-
-  private val fastReposBase = Seq(
-    "http://repo1.maven.org/",
-    "https://repo1.maven.org/"
-  )
 
   private def resultTask(bootResOpt: Option[Seq[Resolver]], overrideFlag: Boolean): Def.Initialize[sbt.Task[Seq[Resolver]]] =
     bootResOpt.filter(_ => overrideFlag) match {
@@ -38,23 +27,6 @@ object RepositoriesTasks {
         }
     }
 
-  private def url(res: Resolver): Option[String] =
-    res match {
-      case m: sbt.librarymanagement.MavenRepository =>
-        Some(m.root)
-      case u: sbt.URLRepository =>
-        u.patterns.artifactPatterns.headOption
-          .orElse(u.patterns.ivyPatterns.headOption)
-      case _ =>
-        None
-    }
-
-  private def fastRepo(res: Resolver): Boolean =
-    url(res).exists(u => fastReposBase.exists(u.startsWith))
-
-  private def slowRepo(res: Resolver): Boolean =
-    url(res).exists(u => slowReposBase.exists(u.startsWith))
-
   def coursierResolversTask: Def.Initialize[sbt.Task[Seq[Resolver]]] =
     Def.taskDyn {
 
@@ -67,10 +39,9 @@ object RepositoriesTasks {
         val keepPreloaded = coursierKeepPreloaded.value
 
         val result0 =
-          if (reorderResolvers && result.exists(fastRepo) && result.exists(slowRepo)) {
-            val (slow, other) = result.partition(slowRepo)
-            other ++ slow
-          } else
+          if (reorderResolvers)
+            ResolutionParams.reorderResolvers(result)
+          else
             result
 
         if (keepPreloaded)

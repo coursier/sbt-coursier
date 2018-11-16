@@ -1,76 +1,19 @@
 package coursier.sbtcoursier
 
-import java.io.File
 import java.net.URL
 
 import coursier.{Cache, ProjectCache}
 import coursier.core._
 import coursier.extra.Typelevel
-import coursier.ivy.{IvyRepository, PropertiesPattern}
+import coursier.ivy.IvyRepository
 import coursier.maven.MavenRepository
 import coursier.sbtcoursier.Keys._
 import sbt.Def
 import sbt.Keys._
 
-import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
 
 object ResolutionTasks {
-
-  private def exceptionPatternParser(): String => coursier.ivy.Pattern = {
-
-    val props = sys.props.toMap
-
-    val extraProps = new ArrayBuffer[(String, String)]
-
-    def addUriProp(key: String): Unit =
-      for (b <- props.get(key)) {
-        val uri = new File(b).toURI.toString
-        extraProps += s"$key.uri" -> uri
-      }
-
-    addUriProp("sbt.global.base")
-    addUriProp("user.home")
-
-    {
-      s =>
-        val p = PropertiesPattern.parse(s) match {
-          case Left(err) =>
-            throw new Exception(s"Cannot parse pattern $s: $err")
-          case Right(p) =>
-            p
-        }
-
-        p.substituteProperties(props ++ extraProps) match {
-          case Left(err) =>
-            throw new Exception(err)
-          case Right(p) =>
-            p
-        }
-    }
-  }
-
-  private def globalPluginPatterns(sbtVersion: String): Seq[coursier.ivy.Pattern] = {
-
-    // FIXME get the 0.13 automatically?
-    val defaultRawPattern = s"$${sbt.global.base.uri-$${user.home.uri}/.sbt/$sbtVersion}/plugins/target" +
-      "/resolution-cache/" +
-      "[organization]/[module](/scala_[scalaVersion])(/sbt_[sbtVersion])/[revision]/resolved.xml.[ext]"
-
-    // seems to be required in more recent versions of sbt (since 0.13.16?)
-    val extraRawPattern = s"$${sbt.global.base.uri-$${user.home.uri}/.sbt/$sbtVersion}/plugins/target" +
-      "(/scala-[scalaVersion])(/sbt-[sbtVersion])" +
-      "/resolution-cache/" +
-      "[organization]/[module](/scala_[scalaVersion])(/sbt_[sbtVersion])/[revision]/resolved.xml.[ext]"
-
-    val p = exceptionPatternParser()
-
-    Seq(
-      defaultRawPattern,
-      extraRawPattern
-    ).map(p)
-  }
-
 
   def resolutionsTask(
     sbtClassifiers: Boolean = false
@@ -165,7 +108,7 @@ object ResolutionTasks {
       val typelevel = Organization(scalaOrganization.value) == Typelevel.typelevelOrg
 
       val globalPluginsRepos =
-        for (p <- globalPluginPatterns(sbtBinaryVersion.value))
+        for (p <- ResolutionParams.globalPluginPatterns(sbtBinaryVersion.value))
           yield IvyRepository.fromPattern(
             p,
             withChecksums = false,
@@ -175,20 +118,7 @@ object ResolutionTasks {
 
       val interProjectRepo = InterProjectRepository(interProjectDependencies)
 
-      val ivyHome = sys.props.getOrElse(
-        "ivy.home",
-        new File(sys.props("user.home")).toURI.getPath + ".ivy2"
-      )
-
-      val sbtIvyHome = sys.props.getOrElse(
-        "sbt.ivy.home",
-        ivyHome
-      )
-
-      val ivyProperties = Map(
-        "ivy.home" -> ivyHome,
-        "sbt.ivy.home" -> sbtIvyHome
-      ) ++ sys.props
+      val ivyProperties = ResolutionParams.defaultIvyProperties()
 
       val authenticationByRepositoryId = coursierCredentials.value.mapValues(_.authentication)
 
@@ -255,7 +185,7 @@ object ResolutionTasks {
 
       ResolutionRun.resolutions(
         ResolutionParams(
-          currentProject,
+          currentProject.dependencies,
           fallbackDependencies,
           configGraphs,
           autoScalaLib,

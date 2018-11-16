@@ -1,4 +1,4 @@
-{
+/*{
   val pluginVersion = sys.props.getOrElse(
     "plugin.version",
     throw new RuntimeException(
@@ -8,4 +8,4 @@
   )
 
   addSbtPlugin("io.get-coursier" % "sbt-coursier" % pluginVersion)
-}
+}*/

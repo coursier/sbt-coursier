@@ -254,7 +254,7 @@ object ToSbt {
     }
 
     UpdateReport(
-      null,
+      new File("."),
       configReports.toVector,
       UpdateStats(-1L, -1L, -1L, cached = false),
       Map.empty

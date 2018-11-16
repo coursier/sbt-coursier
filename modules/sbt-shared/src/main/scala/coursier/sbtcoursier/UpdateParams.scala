@@ -10,7 +10,7 @@ final case class UpdateParams(
   artifacts: Map[Artifact, Either[FileError, File]],
   classifiers: Option[Seq[Classifier]],
   configs: Map[Configuration, Set[Configuration]],
-  currentProject: Project,
+  dependencies: Seq[(Configuration, Dependency)],
   res: Map[Set[Configuration], Resolution],
   ignoreArtifactErrors: Boolean,
   includeSignatures: Boolean,

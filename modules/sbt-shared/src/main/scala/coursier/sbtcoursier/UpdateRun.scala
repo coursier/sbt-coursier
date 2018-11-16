@@ -92,7 +92,7 @@ object UpdateRun {
         configs.iterator.map((_, r))
     }
 
-    val depsByConfig = grouped(params.currentProject.dependencies)(
+    val depsByConfig = grouped(params.dependencies)(
       config =>
         params.shadedConfigOpt match {
           case Some((baseConfig, `config`)) =>

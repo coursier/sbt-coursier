@@ -2,7 +2,7 @@ package coursier.sbtcoursier
 
 import java.util.concurrent.ConcurrentHashMap
 
-import coursier.core.{Configuration, Project, Repository, Resolution}
+import coursier.core._
 import sbt.librarymanagement.UpdateReport
 
 class SbtCoursierCache {
@@ -38,7 +38,7 @@ class SbtCoursierCache {
 object SbtCoursierCache {
 
   final case class ResolutionKey(
-    project: Project,
+    dependencies: Seq[(Configuration, Dependency)],
     repositories: Seq[Repository],
     userEnabledProfiles: Set[String],
     resolution: Map[Set[Configuration], Resolution],
@@ -46,7 +46,7 @@ object SbtCoursierCache {
   )
 
   final case class ReportKey(
-    project: Project,
+    dependencies: Seq[(Configuration, Dependency)],
     resolution: Map[Set[Configuration], Resolution],
     withClassifiers: Boolean,
     sbtClassifiers: Boolean,

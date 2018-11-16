@@ -102,11 +102,11 @@ object UpdateTasks {
 
       val verbosityLevel = coursierVerbosity.value
 
-      val currentProject = currentProjectTask.value
+      val dependencies = currentProjectTask.value.dependencies
       val res = resTask.value
 
       val key = SbtCoursierCache.ReportKey(
-        currentProject,
+        dependencies,
         res,
         withClassifiers,
         sbtClassifiers,
@@ -128,7 +128,7 @@ object UpdateTasks {
               artifactFilesOrErrors0,
               classifiers,
               configs,
-              currentProject,
+              dependencies,
               res,
               ignoreArtifactErrors,
               includeSignatures,

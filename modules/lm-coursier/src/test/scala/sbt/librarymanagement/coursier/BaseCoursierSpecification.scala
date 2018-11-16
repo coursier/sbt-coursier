@@ -7,7 +7,7 @@ import sbt.librarymanagement._
 
 trait BaseCoursierSpecification extends UnitSpec {
   lazy val log = ConsoleLogger()
-  val lmEngine: CoursierDependencyResolution
+  val lmEngine: CoursierDependencyResolution0
 
   def configurations = Vector(Compile, Test, Runtime)
   def module(moduleId: ModuleID,

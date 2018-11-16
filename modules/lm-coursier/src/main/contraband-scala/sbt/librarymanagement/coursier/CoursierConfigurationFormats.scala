@@ -17,8 +17,11 @@ implicit lazy val CoursierConfigurationFormat: JsonFormat[sbt.librarymanagement.
       val reorderResolvers = unbuilder.readField[Boolean]("reorderResolvers")
       val parallelDownloads = unbuilder.readField[Int]("parallelDownloads")
       val maxIterations = unbuilder.readField[Int]("maxIterations")
+      val sbtScalaOrganization = unbuilder.readField[Option[String]]("sbtScalaOrganization")
+      val sbtScalaVersion = unbuilder.readField[Option[String]]("sbtScalaVersion")
+      val sbtScalaJars = unbuilder.readField[Vector[java.io.File]]("sbtScalaJars")
       unbuilder.endObject()
-      sbt.librarymanagement.coursier.CoursierConfiguration(log, resolvers, otherResolvers, reorderResolvers, parallelDownloads, maxIterations)
+      sbt.librarymanagement.coursier.CoursierConfiguration(log, resolvers, otherResolvers, reorderResolvers, parallelDownloads, maxIterations, sbtScalaOrganization, sbtScalaVersion, sbtScalaJars)
       case None =>
       deserializationError("Expected JsObject but found None")
     }
@@ -31,6 +34,9 @@ implicit lazy val CoursierConfigurationFormat: JsonFormat[sbt.librarymanagement.
     builder.addField("reorderResolvers", obj.reorderResolvers)
     builder.addField("parallelDownloads", obj.parallelDownloads)
     builder.addField("maxIterations", obj.maxIterations)
+    builder.addField("sbtScalaOrganization", obj.sbtScalaOrganization)
+    builder.addField("sbtScalaVersion", obj.sbtScalaVersion)
+    builder.addField("sbtScalaJars", obj.sbtScalaJars)
     builder.endObject()
   }
 }

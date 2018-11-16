@@ -70,7 +70,7 @@ object ResolutionRun {
           else
             Nil,
           if (verbosityLevel >= 2)
-            depsRepr(params.currentProject.dependencies).map(depRepr =>
+            depsRepr(params.dependencies).map(depRepr =>
               s"  $depRepr"
             )
           else

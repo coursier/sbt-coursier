@@ -1,372 +1,177 @@
 package sbt.librarymanagement.coursier
 
-import java.io.{File, OutputStreamWriter}
-import java.util.concurrent.Executors
+import java.io.OutputStreamWriter
 
-import scala.util.{Failure, Success}
-import scala.concurrent.ExecutionContext
-import coursier.{Artifact, Resolution, _}
-import coursier.core.{Classifier, Configuration, Type}
-import coursier.sbtcoursier.{FromSbt, ToSbt}
-import coursier.util.{Gather, Task}
+import _root_.coursier.{CachePolicy, Organization, Project, TermDisplay, organizationString}
+import _root_.coursier.ivy.IvyRepository
+import _root_.coursier.sbtcoursier.{ArtifactsParams, ArtifactsRun, FromSbt, Inputs, InterProjectRepository, ResolutionParams, ResolutionRun, SbtBootJars, UpdateParams, UpdateRun}
+import _root_.coursier.Cache
 import sbt.internal.librarymanagement.IvySbt
-import sbt.librarymanagement.Configurations.{CompilerPlugin, Component, ScalaTool}
-import sbt.librarymanagement.{Configuration => _, _}
+import sbt.librarymanagement._
 import sbt.util.Logger
-import sjsonnew.JsonFormat
-import sjsonnew.support.murmurhash.Hasher
 
-private[sbt] class CoursierDependencyResolution(coursierConfiguration: CoursierConfiguration)
-    extends DependencyResolutionInterface {
+class CoursierDependencyResolution(conf: CoursierConfiguration) extends DependencyResolutionInterface {
 
-  // keep the pool alive while the class is loaded
-  private lazy val pool =
-    ExecutionContext.fromExecutor(
-      Executors.newFixedThreadPool(coursierConfiguration.parallelDownloads)
-    )
+  private def sbtBinaryVersion = "1.0"
 
-  private[coursier] val reorderedResolvers = {
-    val resolvers0 =
-      coursierConfiguration.resolvers ++ coursierConfiguration.otherResolvers
+  def moduleDescriptor(moduleSetting: ModuleDescriptorConfiguration): CoursierModuleDescriptor =
+    CoursierModuleDescriptor(moduleSetting, conf)
 
-    if (coursierConfiguration.reorderResolvers) {
-      Resolvers.reorder(resolvers0)
-    } else resolvers0
-  }
+  def update(
+    module: ModuleDescriptor,
+    configuration: UpdateConfiguration,
+    uwconfig: UnresolvedWarningConfiguration,
+    log: Logger
+  ): Either[UnresolvedWarning, UpdateReport] = {
 
-  private[sbt] object AltLibraryManagementCodec extends CoursierLibraryManagementCodec {
-    type CoursierHL = (
-        Vector[Resolver],
-        Vector[Resolver],
-        Boolean,
-        Int,
-        Int
-    )
+    // TODO Take stuff in configuration into account? uwconfig too?
 
-    def coursierToHL(c: CoursierConfiguration): CoursierHL =
-      (
-        c.resolvers,
-        c.otherResolvers,
-        c.reorderResolvers,
-        c.parallelDownloads,
-        c.maxIterations
-      )
-    // Redefine to use a subset of properties, that are serialisable
-    override implicit lazy val CoursierConfigurationFormat: JsonFormat[CoursierConfiguration] = {
-      def hlToCoursier(c: CoursierHL): CoursierConfiguration = {
-        val (
-          resolvers,
-          otherResolvers,
-          reorderResolvers,
-          parallelDownloads,
-          maxIterations
-        ) = c
-        CoursierConfiguration()
-          .withResolvers(resolvers)
-          .withOtherResolvers(otherResolvers)
-          .withReorderResolvers(reorderResolvers)
-          .withParallelDownloads(parallelDownloads)
-          .withMaxIterations(maxIterations)
-      }
-      projectFormat[CoursierConfiguration, CoursierHL](coursierToHL, hlToCoursier)
-    }
-  }
-
-  def extraInputHash: Long = {
-    import AltLibraryManagementCodec._
-    Hasher.hash(coursierConfiguration) match {
-      case Success(keyHash) => keyHash.toLong
-      case Failure(_)       => 0L
-    }
-  }
-
-  /**
-   * Builds a ModuleDescriptor that describes a subproject with dependencies.
-   *
-   * @param moduleSetting It contains the information about the module including the dependencies.
-   * @return A `ModuleDescriptor` describing a subproject and its dependencies.
-   */
-  override def moduleDescriptor(
-      moduleSetting: ModuleDescriptorConfiguration): CoursierModuleDescriptor = {
-    CoursierModuleDescriptor(
-      moduleSetting.dependencies,
-      moduleSetting.scalaModuleInfo,
-      CoursierModuleSettings(),
-      moduleSetting.configurations.map(_.name),
-      extraInputHash
-    )
-  }
-
-  val ivyHome = sys.props.getOrElse(
-    "ivy.home",
-    new File(sys.props("user.home")).toURI.getPath + ".ivy2"
-  )
-
-  val sbtIvyHome = sys.props.getOrElse(
-    "sbt.ivy.home",
-    ivyHome
-  )
-
-  val ivyProperties = Map(
-    "ivy.home" -> ivyHome,
-    "sbt.ivy.home" -> sbtIvyHome
-  ) ++ sys.props
-
-  /**
-   * Resolves the given module's dependencies performing a retrieval.
-   *
-   * @param module        The module to be resolved.
-   * @param configuration The update configuration.
-   * @param uwconfig      The configuration to handle unresolved warnings.
-   * @param log           The logger.
-   * @return The result, either an unresolved warning or an update report. Note that this
-   *         update report will or will not be successful depending on the `missingOk` option.
-   */
-  override def update(module: ModuleDescriptor,
-                      configuration: UpdateConfiguration,
-                      uwconfig: UnresolvedWarningConfiguration,
-                      log: Logger): Either[UnresolvedWarning, UpdateReport] = {
-
-    // not sure what DependencyResolutionInterface.moduleDescriptor is for, we're handled ivy stuff anyway...
     val module0 = module match {
-      case c: CoursierModuleDescriptor => c
-      // This shouldn't happen at best of my understanding
+      case c: CoursierModuleDescriptor =>
+        // seems not to happen, not sure what DependencyResolutionInterface.moduleDescriptor is for
+        c.descriptor
       case i: IvySbt#Module =>
-        moduleDescriptor(
-          i.moduleSettings match {
-            case c: ModuleDescriptorConfiguration => c
-            case other                            => sys.error(s"unrecognized module settings: $other")
-          }
-        )
+        i.moduleSettings match {
+          case d: ModuleDescriptorConfiguration => d
+          case other => sys.error(s"unrecognized module settings: $other")
+        }
       case _ =>
         sys.error(s"unrecognized ModuleDescriptor type: $module")
     }
 
-    if (reorderedResolvers.isEmpty) {
-      log.error(
-        "Dependency resolution is configured with an empty list of resolvers. This is unlikely to work.")
+    val so = module0.scalaModuleInfo.fold(org"org.scala-lang")(m => Organization(m.scalaOrganization))
+    val sv = module0.scalaModuleInfo.map(_.scalaFullVersion)
+      // FIXME Manage to do stuff below without a scala version?
+      .getOrElse(scala.util.Properties.versionNumberString)
+
+    val sbv = module0.scalaModuleInfo.map(_.scalaBinaryVersion).getOrElse {
+      sv.split('.').take(2).mkString(".")
     }
 
-    val dependencies = module.directDependencies.flatMap(toCoursierDependency).toSet
-    val start = Resolution(dependencies.map(_._1))
-    val authentication = None // TODO: get correct value
-    val ivyConfiguration = ivyProperties // TODO: is it enough?
+    val verbosityLevel = 0
 
-    val repositories =
-      reorderedResolvers.flatMap(r => FromSbt.repository(r, ivyConfiguration, log, authentication)) ++ Seq(
-        Cache.ivy2Local,
-        Cache.ivy2Cache
-      )
-
-    implicit val ec = pool
-
-    val coursierLogger = createLogger()
-    try {
-      val fetch = Fetch.from(
-        repositories,
-        Cache.fetch[Task](logger = Some(coursierLogger))
-      )
-      val resolution = start.process
-        .run(fetch, coursierConfiguration.maxIterations)
-        .unsafeRun()
-
-      def updateReport() = {
-        val localArtifacts: Map[Artifact, Either[FileError, File]] = Gather[Task]
-          .gather(
-            resolution.artifacts().map { a =>
-              Cache
-                .file[Task](a, logger = Some(coursierLogger))
-                .run
-                .map((a, _))
-            }
-          )
-          .unsafeRun()
-          .toMap
-
-        toUpdateReport(resolution,
-                       (module0.configurations.map(Configuration(_)) ++ dependencies.map(_._2)).distinct,
-                       localArtifacts,
-                       log)
-      }
-
-      if (resolution.isDone &&
-          resolution.errors.isEmpty &&
-          resolution.conflicts.isEmpty) {
-        updateReport()
-      } else if (resolution.isDone &&
-                 (resolution.errors.nonEmpty && configuration.missingOk)
-                 && resolution.conflicts.isEmpty) {
-        log.warn(s"""Failed to download artifacts: ${resolution.errors
-          .flatMap(_._2)
-          .mkString(", ")}""")
-        updateReport()
-      } else {
-        toSbtError(log, uwconfig, resolution)
-      }
-    } finally {
-      coursierLogger.stop()
+    val ttl = Cache.defaultTtl
+    val createLogger = { () =>
+      new TermDisplay(new OutputStreamWriter(System.err), fallbackMode = true)
     }
-  }
+    val cache = Cache.default
+    val cachePolicies = CachePolicy.default
+    val checksums: Seq[Option[String]] = Cache.defaultChecksums
+    val projectName = "" // used for logging only…
 
-  // utilities
-  private def createLogger() = {
-    val t = new TermDisplay(new OutputStreamWriter(System.out))
-    t.init()
-    t
-  }
+    val ivyProperties = ResolutionParams.defaultIvyProperties()
 
-  private def toCoursierDependency(moduleID: ModuleID) = {
-    val attributes =
-      if (moduleID.explicitArtifacts.isEmpty)
-        Seq(Attributes(Type.empty, Classifier.empty))
+    val resolvers =
+      if (conf.reorderResolvers)
+        ResolutionParams.reorderResolvers(conf.resolvers)
       else
-        moduleID.explicitArtifacts.map { a =>
-          Attributes(`type` = Type(a.`type`), classifier = a.classifier.fold(Classifier.empty)(Classifier(_)))
-        }
+        conf.resolvers
 
-    val extraAttrs = FromSbt.attributes(moduleID.extraDependencyAttributes)
-
-    val mapping = moduleID.configurations.getOrElse("compile")
-
-    import _root_.coursier.ivy.IvyXml.{ mappings => ivyXmlMappings }
-    val allMappings = ivyXmlMappings(mapping)
-
-    for {
-      (from, to) <- allMappings
-      attr <- attributes
-    } yield {
-      Dependency(
-        Module(Organization(moduleID.organization), ModuleName(moduleID.name), extraAttrs),
-        moduleID.revision,
-        configuration = to,
-        attributes = attr,
-        exclusions = moduleID.exclusions.map { rule =>
-          (Organization(rule.organization), ModuleName(rule.name))
-        }.toSet,
-        transitive = moduleID.isTransitive
-      ) -> from
-    }
-  }
-
-  private def toUpdateReport(resolution: Resolution,
-                             configurations: Seq[Configuration],
-                             artifactFilesOrErrors0: Map[Artifact, Either[FileError, File]],
-                             log: Logger): Either[UnresolvedWarning, UpdateReport] = {
-
-    val artifactFiles = artifactFilesOrErrors0.collect {
-      case (artifact, Right(file)) =>
-        artifact -> file
-    }
-
-    val artifactErrors = artifactFilesOrErrors0.toVector
-      .collect {
-        case (a, Left(err)) if !a.optional || !err.notFound =>
-          a -> err
+    val mainRepositories = resolvers
+      .flatMap { resolver =>
+        FromSbt.repository(
+          resolver,
+          ivyProperties,
+          log,
+          None // FIXME What about authentication?
+        )
       }
 
-    val erroredArtifacts = artifactFilesOrErrors0.collect {
-      case (a, Left(_)) => a
-    }.toSet
+    val globalPluginsRepos =
+      for (p <- ResolutionParams.globalPluginPatterns(sbtBinaryVersion))
+        yield IvyRepository.fromPattern(
+          p,
+          withChecksums = false,
+          withSignatures = false,
+          withArtifacts = false
+        )
 
-    val depsByConfig = {
-      val deps = resolution.dependencies.toVector
-      configurations
-        .map((_, deps))
-        .toMap
+    val interProjectDependencies: Seq[Project] = Nil // TODO Don't use Nil here
+    val interProjectRepo = InterProjectRepository(interProjectDependencies)
+
+    val internalRepositories = globalPluginsRepos :+ interProjectRepo
+
+    val dependencies = module0.dependencies.flatMap { d =>
+      // crossVersion already taken into account, wiping it here
+      val d0 = d.withCrossVersion(CrossVersion.Disabled())
+      FromSbt.dependencies(d0, sv, sbv)
     }
 
-    val configurations0 = extractConfigurationTree(configurations)
+    val configGraphs = Inputs.ivyGraphs(
+      Inputs.configExtends(module0.configurations)
+    )
 
-    val configResolutions =
-      (depsByConfig.keys ++ configurations0.keys).map(k => (k, resolution)).toMap
+    val resolutionParams = ResolutionParams(
+      dependencies = dependencies,
+      fallbackDependencies = Nil,
+      configGraphs = configGraphs,
+      autoScalaLib = true,
+      mainRepositories = mainRepositories,
+      parentProjectCache = Map.empty,
+      interProjectDependencies = interProjectDependencies,
+      internalRepositories = internalRepositories,
+      userEnabledProfiles = Set.empty,
+      userForceVersions = Map.empty,
+      typelevel = false,
+      so = so,
+      sv = sv,
+      sbtClassifiers = false,
+      parallelDownloads = conf.parallelDownloads,
+      projectName = projectName,
+      maxIterations = conf.maxIterations,
+      createLogger = createLogger,
+      cache = cache,
+      cachePolicies = cachePolicies,
+      ttl = ttl,
+      checksums = checksums
+    )
 
-    val sbtBootJarOverrides = Map.empty[(Module, String), File]
-    val classifiers = None // TODO: get correct values
+    val resolutions = ResolutionRun.resolutions(resolutionParams, verbosityLevel, log)
 
-    if (artifactErrors.isEmpty) {
-      Right(
-        ToSbt.updateReport(
-          depsByConfig,
-          configResolutions,
-          configurations0,
-          classifiers,
-          artifactFileOpt(
-            sbtBootJarOverrides,
-            artifactFiles,
-            erroredArtifacts,
-            log,
-            _,
-            _,
-            _,
-            _
-          ),
-          log
-        ))
-    } else {
-      throw new RuntimeException(s"Could not save downloaded dependencies: $erroredArtifacts")
-    }
+    val artifactsParams = ArtifactsParams(
+      classifiers = None,
+      res = resolutions.values.toSeq,
+      includeSignatures = false,
+      parallelDownloads = conf.parallelDownloads,
+      createLogger = createLogger,
+      cache = cache,
+      artifactsChecksums = checksums,
+      ttl = ttl,
+      cachePolicies = cachePolicies,
+      projectName = projectName,
+      sbtClassifiers = false
+    )
 
+    val artifacts = ArtifactsRun.artifacts(artifactsParams, verbosityLevel, log)
+
+    val configs = Inputs.coursierConfigurations(module0.configurations)
+
+    val sbtBootJarOverrides = SbtBootJars(
+      conf.sbtScalaOrganization.fold(org"org.scala-lang")(Organization(_)),
+      conf.sbtScalaVersion.getOrElse(sv),
+      conf.sbtScalaJars
+    )
+
+    val updateParams = UpdateParams(
+      shadedConfigOpt = None,
+      artifacts = artifacts,
+      classifiers = None,
+      configs = configs,
+      dependencies = dependencies,
+      res = resolutions,
+      ignoreArtifactErrors = false,
+      includeSignatures = false,
+      sbtBootJarOverrides = sbtBootJarOverrides
+    )
+
+    val updateReport = UpdateRun.update(updateParams, verbosityLevel, log)
+
+    Right(updateReport)
   }
 
-  type ConfigurationDependencyTree = Map[Configuration, Set[Configuration]]
-
-  // Key is the name of the configuration (i.e. `compile`) and the values are the name itself plus the
-  // names of the configurations that this one depends on.
-  private def extractConfigurationTree(available: Seq[Configuration]): ConfigurationDependencyTree =
-    (Configurations.default ++
-      Configurations.defaultInternal ++
-      Seq(ScalaTool, CompilerPlugin, Component))
-      .filter(c => available.contains(Configuration(c.name)))
-      .map(c => (Configuration(c.name), c.extendsConfigs.map(c => Configuration(c.name)) :+ Configuration(c.name)))
-      .toMap
-      .mapValues(_.toSet)
-
-  private def artifactFileOpt(
-      sbtBootJarOverrides: Map[(Module, String), File],
-      artifactFiles: Map[Artifact, File],
-      erroredArtifacts: Set[Artifact],
-      log: Logger,
-      module: Module,
-      version: String,
-      attr: Attributes,
-      artifact: Artifact
-  ) = {
-
-    val artifact0 = artifact
-
-    // Under some conditions, SBT puts the scala JARs of its own classpath
-    // in the application classpath. Ensuring we return SBT's jars rather than
-    // JARs from the coursier cache, so that a same JAR doesn't land twice in the
-    // application classpath (once via SBT jars, once via coursier cache).
-    val fromBootJars =
-      if (attr.classifier.isEmpty && attr.`type` == Type.jar)
-        sbtBootJarOverrides.get((module, version))
-      else
-        None
-
-    val res = fromBootJars.orElse(artifactFiles.get(artifact0))
-    if (res.isEmpty && !erroredArtifacts(artifact0))
-      log.error(s"${artifact.url} not downloaded (should not happen)")
-
-    res
-  }
-
-  private def toSbtError(log: Logger,
-                         uwconfig: UnresolvedWarningConfiguration,
-                         resolution: Resolution) = {
-    val failedResolution = resolution.errors.map {
-      case ((failedModule, failedVersion), _) =>
-        ModuleID(failedModule.organization.value, failedModule.name.value, failedVersion)
-    }
-    val msgs = resolution.errors.flatMap(_._2)
-    log.debug(s"Failed resolution: $msgs")
-    log.debug(s"Missing artifacts: $failedResolution")
-    val ex = new ResolveException(msgs, failedResolution)
-    Left(UnresolvedWarning(ex, uwconfig))
-  }
 }
 
 object CoursierDependencyResolution {
-  def apply(configuration: CoursierConfiguration) =
+  def apply(configuration: CoursierConfiguration): DependencyResolution =
     DependencyResolution(new CoursierDependencyResolution(configuration))
 }

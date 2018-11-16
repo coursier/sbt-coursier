@@ -5,8 +5,8 @@ import java.net.URL
 
 import coursier.{Cache, CachePolicy, Credentials, FileError, ProjectCache}
 import coursier.core._
-import sbt.librarymanagement.GetClassifiersModule
-import sbt.{InputKey, Resolver, SettingKey, TaskKey}
+import sbt.librarymanagement.{GetClassifiersModule, Resolver}
+import sbt.{InputKey, SettingKey, TaskKey}
 
 import scala.concurrent.duration.Duration
 
