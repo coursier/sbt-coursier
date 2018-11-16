@@ -7,12 +7,31 @@ downloadInstallSbtExtras() {
   chmod +x bin/sbt
 }
 
+lmCoursier() {
+  [ "${LM_COURSIER:-""}" = 1 ]
+}
+
 sbtPgpCoursier() {
   [ "${SBT_PGP_COURSIER:-""}" = 1 ]
 }
 
 sbtShading() {
   [ "${SBT_SHADING:-""}" = 1 ]
+}
+
+runLmCoursierTests() {
+  TMP_SBT_VERSION="1.2.3-lm-coursier-SNAPSHOT"
+  git clone https://github.com/alexarchambault/sbt.git -b topic/lm-coursier
+  cd sbt
+  sbt "set version.in(ThisBuild) := \"$TMP_SBT_VERSION\"" publishLocal
+  cd ..
+  sbt \
+    -Dlmcoursier.sbt.version="$TMP_SBT_VERSION" \
+    ++$TRAVIS_SCALA_VERSION \
+    sbt-shared/publishLocal \
+    lm-coursier/publishLocal \
+    lm-coursier/test \
+    "lm-coursier/scripted sbt-coursier-group-2/simple"
 }
 
 runSbtCoursierTests() {
@@ -41,6 +60,8 @@ if sbtShading; then
   runSbtShadingTests
 elif sbtPgpCoursier; then
   runSbtPgpCoursierTests
+elif lmCoursier; then
+  runLmCoursierTests
 else
   runSbtCoursierTests
 fi
