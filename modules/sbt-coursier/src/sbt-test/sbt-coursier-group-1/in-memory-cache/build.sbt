@@ -8,3 +8,11 @@ coursierArtifacts := {
   java.nio.file.Files.write(f.toPath, Array.empty[Byte])
   coursierArtifacts.value
 }
+
+
+{
+  // Just checking that this class can be found.
+  // It should be brought either via sbt-coursier, or via lm-coursier.
+  coursier.sbtcoursier.ResolutionRun
+  Seq()
+}

@@ -9,3 +9,11 @@ libraryDependencies += "com.github.alexarchambault" %% "argonaut-shapeless_6.1" 
 
 excludeDependencies += sbt.ExclusionRule("com.chuusai", "shapeless_2.11")
 excludeDependencies += "io.argonaut" %% "argonaut"
+
+
+{
+  // Just checking that this class can be found.
+  // It should be brought either via sbt-coursier, or via lm-coursier.
+  coursier.sbtcoursier.ResolutionRun
+  Seq()
+}

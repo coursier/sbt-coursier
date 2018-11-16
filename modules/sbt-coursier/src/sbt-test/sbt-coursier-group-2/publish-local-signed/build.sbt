@@ -7,3 +7,11 @@ pgpPublicRing := baseDirectory.value / "pubring.pgp"
 
 // Workaround for https://github.com/sbt/sbt-pgp/issues/148
 publishTo := Some("dummy" at java.nio.file.Paths.get("").toAbsolutePath.toUri.toASCIIString)
+
+
+{
+  // Just checking that this class can be found.
+  // It should be brought either via sbt-coursier, or via lm-coursier.
+  coursier.sbtcoursier.ResolutionRun
+  Seq()
+}

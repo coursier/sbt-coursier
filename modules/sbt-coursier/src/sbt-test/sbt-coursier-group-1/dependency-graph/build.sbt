@@ -11,3 +11,11 @@ whatDependsOnCheck := {
   val file = new File("whatDependsOnResult.log")
   assert(IO.read(file).toString == result)
 }
+
+
+{
+  // Just checking that this class can be found.
+  // It should be brought either via sbt-coursier, or via lm-coursier.
+  coursier.sbtcoursier.ResolutionRun
+  Seq()
+}
