@@ -183,7 +183,7 @@ object ResolutionTasks {
         }
         .map(withAuthenticationByHost(_, authenticationByHost))
 
-      ResolutionRun.resolutions(
+      val resOrError = ResolutionRun.resolutions(
         ResolutionParams(
           currentProject.dependencies,
           fallbackDependencies,
@@ -211,6 +211,13 @@ object ResolutionTasks {
         verbosityLevel,
         log
       )
+
+      resOrError match {
+        case Left(err) =>
+          err.throwException()
+        case Right(res) =>
+          res
+      }
     }
   }
 

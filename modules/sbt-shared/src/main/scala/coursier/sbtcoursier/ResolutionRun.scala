@@ -18,7 +18,7 @@ object ResolutionRun {
     verbosityLevel: Int,
     log: Logger,
     startRes: Resolution
-  ): Resolution = {
+  ): Either[ResolutionError, Resolution] = {
 
     // TODO Re-use the thread pool across resolutions / downloads?
     var pool: ExecutorService = null
@@ -27,7 +27,7 @@ object ResolutionRun {
 
     val printOptionalMessage = verbosityLevel >= 0 && verbosityLevel <= 1
 
-    val res = try {
+    val resOrError: Either[ResolutionError, Resolution] = try {
       pool = Schedulable.fixedThreadPool(params.parallelDownloads)
       resLogger = params.createLogger()
 
@@ -90,9 +90,7 @@ object ResolutionRun {
         .left
         .map(ex =>
           ResolutionError.UnknownException(ex)
-            .throwException()
         )
-        .merge
     } finally {
       if (pool != null)
         pool.shutdown()
@@ -101,43 +99,45 @@ object ResolutionRun {
           log.info(s"Resolved ${params.projectName} dependencies")
     }
 
-    if (!res.isDone)
-      ResolutionError.MaximumIterationsReached
-        .throwException()
+    resOrError.flatMap { res =>
+      if (!res.isDone)
+        Left(
+          ResolutionError.MaximumIterationsReached
+        )
+      else if (res.conflicts.nonEmpty) {
+        val projCache = res.projectCache.mapValues { case (_, p) => p }
 
-    if (res.conflicts.nonEmpty) {
-      val projCache = res.projectCache.mapValues { case (_, p) => p }
+        Left(
+          ResolutionError.Conflicts(
+            "Conflict(s) in dependency resolution:\n  " +
+              Print.dependenciesUnknownConfigs(res.conflicts.toVector, projCache)
+          )
+        )
+      } else if (res.errors.nonEmpty) {
+        val internalRepositoriesLen = params.internalRepositories.length
+        val errors =
+          if (params.repositories.length > internalRepositoriesLen)
+          // drop internal repository errors
+            res.errors.map {
+              case (dep, errs) =>
+                dep -> errs.drop(internalRepositoriesLen)
+            }
+          else
+            res.errors
 
-      ResolutionError.Conflicts(
-        "Conflict(s) in dependency resolution:\n  " +
-          Print.dependenciesUnknownConfigs(res.conflicts.toVector, projCache)
-      ).throwException()
+        Left(
+          ResolutionError.MetadataDownloadErrors(errors)
+        )
+      } else
+        Right(res)
     }
-
-    if (res.errors.nonEmpty) {
-      val internalRepositoriesLen = params.internalRepositories.length
-      val errors =
-        if (params.repositories.length > internalRepositoriesLen)
-        // drop internal repository errors
-          res.errors.map {
-            case (dep, errs) =>
-              dep -> errs.drop(internalRepositoriesLen)
-          }
-        else
-          res.errors
-
-      ResolutionError.MetadataDownloadErrors(errors)
-        .throwException()
-    }
-
-    res
   }
 
   def resolutions(
     params: ResolutionParams,
     verbosityLevel: Int,
     log: Logger
-  ): Map[Set[Configuration], Resolution] = {
+  ): Either[ResolutionError, Map[Set[Configuration], Resolution]] = {
 
     // TODO Warn about possible duplicated modules from source repositories?
 
@@ -147,18 +147,22 @@ object ResolutionRun {
         log.info(s"  ${p.module}:${p.version}")
     }
 
-    SbtCoursierCache.default.resolutionOpt(params.resolutionKey).getOrElse {
+    SbtCoursierCache.default.resolutionOpt(params.resolutionKey).map(Right(_)).getOrElse {
       // Let's update only one module at once, for a better output.
       // Downloads are already parallel, no need to parallelize further, anyway.
-      val res =
+      val resOrError =
         Lock.lock.synchronized {
-          params.allStartRes.map {
-            case (config, startRes) =>
-              config -> resolution(params, verbosityLevel, log, startRes)
+          params.allStartRes.foldLeft[Either[ResolutionError, Map[Set[Configuration], Resolution]]](Right(Map())) {
+            case (acc, (config, startRes)) =>
+              for {
+                m <- acc
+                res <- resolution(params, verbosityLevel, log, startRes)
+              } yield m + (config -> res)
           }
         }
-      SbtCoursierCache.default.putResolution(params.resolutionKey, res)
-      res
+      for (res <- resOrError)
+        SbtCoursierCache.default.putResolution(params.resolutionKey, res)
+      resOrError
     }
   }
 

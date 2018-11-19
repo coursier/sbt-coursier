@@ -135,12 +135,16 @@ object UpdateTasks {
               sbtBootJarOverrides
             )
 
-            val rep =
+            val repOrError =
               Lock.lock.synchronized {
                 UpdateRun.update(params, verbosityLevel, log)
               }
-            SbtCoursierCache.default.putReport(key, rep)
-            rep
+            for (rep <- repOrError)
+              SbtCoursierCache.default.putReport(key, rep)
+            repOrError match {
+              case Left(err) => err.throwException()
+              case Right(rep) => rep
+            }
           }
       }
     }

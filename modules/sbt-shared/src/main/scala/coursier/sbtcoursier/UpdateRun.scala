@@ -85,7 +85,7 @@ object UpdateRun {
     params: UpdateParams,
     verbosityLevel: Int,
     log: Logger
-  ): UpdateReport = {
+  ): Either[ResolutionError.DownloadErrors, UpdateReport] = {
 
     val configResolutions = params.res.flatMap {
       case (configs, r) =>
@@ -127,34 +127,41 @@ object UpdateRun {
           a -> err
       }
 
-    if (artifactErrors.nonEmpty) {
+    // can be non empty only if ignoreArtifactErrors is true or some optional artifacts are not found
+    val erroredArtifacts = params
+      .artifacts
+      .collect {
+        case (artifact, Left(_)) =>
+          artifact
+      }
+      .toSet
+
+    def report =
+      ToSbt.updateReport(
+        depsByConfig,
+        configResolutions,
+        params.configs,
+        params.classifiers,
+        artifactFileOpt(
+          params.sbtBootJarOverrides,
+          artifactFiles,
+          erroredArtifacts
+        ),
+        log,
+        includeSignatures = params.includeSignatures
+      )
+
+    if (artifactErrors.isEmpty)
+      Right(report)
+    else {
       val error = ResolutionError.DownloadErrors(artifactErrors.map(_._2))
 
-      if (params.ignoreArtifactErrors)
+      if (params.ignoreArtifactErrors) {
         log.warn(error.description(verbosityLevel >= 1))
-      else
-        error.throwException()
+        Right(report)
+      } else
+        Left(error)
     }
-
-    // can be non empty only if ignoreArtifactErrors is true or some optional artifacts are not found
-    val erroredArtifacts = params.artifacts.collect {
-      case (artifact, Left(_)) =>
-        artifact
-    }.toSet
-
-    ToSbt.updateReport(
-      depsByConfig,
-      configResolutions,
-      params.configs,
-      params.classifiers,
-      artifactFileOpt(
-        params.sbtBootJarOverrides,
-        artifactFiles,
-        erroredArtifacts
-      ),
-      log,
-      includeSignatures = params.includeSignatures
-    )
   }
 
   private def grouped[K, V](map: Seq[(K, V)])(mapKey: K => K): Map[K, Seq[V]] =

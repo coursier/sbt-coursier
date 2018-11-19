@@ -13,7 +13,6 @@ import sbt.internal.librarymanagement.IvySbt
 import sbt.librarymanagement.Configurations.{CompilerPlugin, Component, ScalaTool}
 import sbt.librarymanagement.{Configuration => _, _}
 import sbt.util.Logger
-import sjsonnew.JsonFormat
 import sjsonnew.support.murmurhash.Hasher
 
 private[sbt] class CoursierDependencyResolution0(coursierConfiguration: CoursierConfiguration)
@@ -319,9 +318,4 @@ private[sbt] class CoursierDependencyResolution0(coursierConfiguration: Coursier
     val ex = new ResolveException(msgs, failedResolution)
     Left(UnresolvedWarning(ex, uwconfig))
   }
-}
-
-object CoursierDependencyResolution0 {
-  def apply(configuration: CoursierConfiguration) =
-    DependencyResolution(new CoursierDependencyResolution0(configuration))
 }

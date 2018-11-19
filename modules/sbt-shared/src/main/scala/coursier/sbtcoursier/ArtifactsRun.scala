@@ -15,7 +15,7 @@ object ArtifactsRun {
     params: ArtifactsParams,
     verbosityLevel: Int,
     log: Logger
-  ): Map[Artifact, Either[FileError, File]] = {
+  ): Either[ResolutionError.UnknownDownloadException, Map[Artifact, Either[FileError, File]]] = {
 
     val allArtifacts0 = params.res.flatMap(_.dependencyArtifacts(params.classifiers)).map(_._3)
 
@@ -73,10 +73,9 @@ object ArtifactsRun {
 
         Task.gather.gather(artifactFileOrErrorTasks).attempt.unsafeRun()(ExecutionContext.fromExecutorService(pool)) match {
           case Left(ex) =>
-            ResolutionError.UnknownDownloadException(ex)
-              .throwException()
+            Left(ResolutionError.UnknownDownloadException(ex))
           case Right(l) =>
-            l.toMap
+            Right(l.toMap)
         }
       } finally {
         if (pool != null)

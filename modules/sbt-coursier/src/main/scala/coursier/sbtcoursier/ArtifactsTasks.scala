@@ -197,11 +197,18 @@ object ArtifactsTasks {
         sbtClassifiers
       )
 
-      ArtifactsRun.artifacts(
+      val resOrError = ArtifactsRun.artifacts(
         params,
         verbosityLevel,
         log
       )
+
+      resOrError match {
+        case Left(err) =>
+          err.throwException()
+        case Right(res) =>
+          res
+      }
     }
   }
 

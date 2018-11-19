@@ -1,10 +1,11 @@
 package sbt.librarymanagement.coursier
 
-import java.io.OutputStreamWriter
+import java.io.{File, OutputStreamWriter}
 
-import _root_.coursier.{CachePolicy, Organization, Project, TermDisplay, organizationString}
+import _root_.coursier.{Artifact, CachePolicy, FileError, Organization, Project, Resolution, TermDisplay, organizationString}
+import _root_.coursier.core.Configuration
 import _root_.coursier.ivy.IvyRepository
-import _root_.coursier.sbtcoursier.{ArtifactsParams, ArtifactsRun, FromSbt, Inputs, InterProjectRepository, ResolutionParams, ResolutionRun, SbtBootJars, UpdateParams, UpdateRun}
+import _root_.coursier.sbtcoursier.{ArtifactsParams, ArtifactsRun, FromSbt, Inputs, InterProjectRepository, ResolutionError, ResolutionParams, ResolutionRun, SbtBootJars, UpdateParams, UpdateRun}
 import _root_.coursier.Cache
 import sbt.internal.librarymanagement.IvySbt
 import sbt.librarymanagement._
@@ -13,6 +14,12 @@ import sbt.util.Logger
 class CoursierDependencyResolution(conf: CoursierConfiguration) extends DependencyResolutionInterface {
 
   private def sbtBinaryVersion = "1.0"
+
+  lazy val resolvers =
+    if (conf.reorderResolvers)
+      ResolutionParams.reorderResolvers(conf.resolvers)
+    else
+      conf.resolvers
 
   def moduleDescriptor(moduleSetting: ModuleDescriptorConfiguration): CoursierModuleDescriptor =
     CoursierModuleDescriptor(moduleSetting, conf)
@@ -60,12 +67,6 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
     val projectName = "" // used for logging only…
 
     val ivyProperties = ResolutionParams.defaultIvyProperties()
-
-    val resolvers =
-      if (conf.reorderResolvers)
-        ResolutionParams.reorderResolvers(conf.resolvers)
-      else
-        conf.resolvers
 
     val mainRepositories = resolvers
       .flatMap { resolver =>
@@ -126,25 +127,20 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
       checksums = checksums
     )
 
-    val resolutions = ResolutionRun.resolutions(resolutionParams, verbosityLevel, log)
-
-    val artifactsParams = ArtifactsParams(
-      classifiers = None,
-      res = resolutions.values.toSeq,
-      includeSignatures = false,
-      parallelDownloads = conf.parallelDownloads,
-      createLogger = createLogger,
-      cache = cache,
-      artifactsChecksums = checksums,
-      ttl = ttl,
-      cachePolicies = cachePolicies,
-      projectName = projectName,
-      sbtClassifiers = false
-    )
-
-    val artifacts = ArtifactsRun.artifacts(artifactsParams, verbosityLevel, log)
-
-    val configs = Inputs.coursierConfigurations(module0.configurations)
+    def artifactsParams(resolutions: Map[Set[Configuration], Resolution]) =
+      ArtifactsParams(
+        classifiers = None,
+        res = resolutions.values.toSeq,
+        includeSignatures = false,
+        parallelDownloads = conf.parallelDownloads,
+        createLogger = createLogger,
+        cache = cache,
+        artifactsChecksums = checksums,
+        ttl = ttl,
+        cachePolicies = cachePolicies,
+        projectName = projectName,
+        sbtClassifiers = false
+      )
 
     val sbtBootJarOverrides = SbtBootJars(
       conf.sbtScalaOrganization.fold(org"org.scala-lang")(Organization(_)),
@@ -152,22 +148,59 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
       conf.sbtScalaJars
     )
 
-    val updateParams = UpdateParams(
-      shadedConfigOpt = None,
-      artifacts = artifacts,
-      classifiers = None,
-      configs = configs,
-      dependencies = dependencies,
-      res = resolutions,
-      ignoreArtifactErrors = false,
-      includeSignatures = false,
-      sbtBootJarOverrides = sbtBootJarOverrides
-    )
+    val configs = Inputs.coursierConfigurations(module0.configurations)
 
-    val updateReport = UpdateRun.update(updateParams, verbosityLevel, log)
+    def updateParams(
+      resolutions: Map[Set[Configuration], Resolution],
+      artifacts: Map[Artifact, Either[FileError, File]]
+    ) =
+      UpdateParams(
+        shadedConfigOpt = None,
+        artifacts = artifacts,
+        classifiers = None,
+        configs = configs,
+        dependencies = dependencies,
+        res = resolutions,
+        ignoreArtifactErrors = false,
+        includeSignatures = false,
+        sbtBootJarOverrides = sbtBootJarOverrides
+      )
 
-    Right(updateReport)
+    val e = for {
+      resolutions <- ResolutionRun.resolutions(resolutionParams, verbosityLevel, log)
+      artifactsParams0 = artifactsParams(resolutions)
+      artifacts <- ArtifactsRun.artifacts(artifactsParams0, verbosityLevel, log)
+      updateParams0 = updateParams(resolutions, artifacts)
+      updateReport <- UpdateRun.update(updateParams0, verbosityLevel, log)
+    } yield updateReport
+
+    e.left.map(unresolvedWarningOrThrow(uwconfig, _))
   }
+
+  private def resolutionException(ex: ResolutionError): Either[Throwable, ResolveException] =
+    ex match {
+      case e: ResolutionError.MetadataDownloadErrors =>
+        val r = new ResolveException(
+          e.errors.flatMap(_._2),
+          e.errors.map {
+            case ((mod, ver), _) =>
+              ModuleID(mod.organization.value, mod.name.value, ver)
+                .withExtraAttributes(mod.attributes)
+          }
+        )
+        Right(r)
+      case _ => Left(ex.exception())
+    }
+
+  private def unresolvedWarningOrThrow(
+    uwconfig: UnresolvedWarningConfiguration,
+    ex: ResolutionError
+  ): UnresolvedWarning =
+    resolutionException(ex) match {
+      case Left(t) => throw t
+      case Right(e) =>
+        UnresolvedWarning(e, uwconfig)
+    }
 
 }
 
