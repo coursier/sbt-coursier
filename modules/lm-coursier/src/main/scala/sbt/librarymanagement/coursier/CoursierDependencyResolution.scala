@@ -56,7 +56,7 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
     }
     val cache = Cache.default
     val cachePolicies = CachePolicy.default
-    val checksums: Seq[Option[String]] = Cache.defaultChecksums
+    val checksums = Cache.defaultChecksums
     val projectName = "" // used for logging only…
 
     val ivyProperties = ResolutionParams.defaultIvyProperties()
