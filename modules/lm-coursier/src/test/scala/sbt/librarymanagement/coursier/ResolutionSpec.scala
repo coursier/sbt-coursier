@@ -21,7 +21,6 @@ class ResolutionSpec extends BaseCoursierSpecification {
 
   private final val stubModule = "com.example" % "foo" % "0.1.0" % "compile"
 
-  /* TODO
   "Coursier dependency resolution" should "resolve very simple module" in {
     val dependencies = Vector(
       "com.typesafe.scala-logging" % "scala-logging_2.12" % "3.7.2" % "compile",
@@ -37,15 +36,14 @@ class ResolutionSpec extends BaseCoursierSpecification {
     r.configurations.map(_.configuration) should have size 3
 
     val compileConfig = r.configurations.find(_.configuration == Compile.toConfigRef).get
-    compileConfig.modules should have size 2
+    compileConfig.modules should have size 1
 
     val runtimeConfig = r.configurations.find(_.configuration == Runtime.toConfigRef).get
-    runtimeConfig.modules should have size 2
+    runtimeConfig.modules should have size 1
 
     val testConfig = r.configurations.find(_.configuration == Test.toConfigRef).get
     testConfig.modules should have size 2
   }
-  */
 
   /* TODO
   it should "resolve compiler bridge" in {
