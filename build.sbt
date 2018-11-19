@@ -73,6 +73,7 @@ lazy val `sbt-lm-coursier` = project
       // TODO Get those automatically
       // (but shouldn't scripted itself handle that…?)
       publishLocal.in(`sbt-shared`).value
+      publishLocal.in(`lm-coursier`).value
     }
   )
 
