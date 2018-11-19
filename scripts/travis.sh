@@ -27,18 +27,24 @@ runLmCoursierTests() {
   # version of lm-coursier in the sbt repository, and binary compatibility
   # should allow us to change things here, before they're picked up by sbt.
 
+  SNAPSHOT_VERSION="1.1.0-SNAPSHOT"
+  TMP_SBT_VERSION="1.2.3-lm-coursier-SNAPSHOT"
+
   # first, publish lm-coursier that we can depend on from sbt
   sbt \
+    "set version.in(ThisBuild) := \"$SNAPSHOT_VERSION\"" \
     ++$TRAVIS_SCALA_VERSION \
     lm-coursier/test \
     sbt-shared/publishLocal \
     lm-coursier/publishLocal
 
   # second, publish a version of sbt that depends on lm-coursier
-  TMP_SBT_VERSION="1.2.3-lm-coursier-SNAPSHOT"
   git clone https://github.com/alexarchambault/sbt.git -b topic/lm-coursier
   cd sbt
   sbt \
+    -Dsbt.build.lm.organization="io.get-coursier" \
+    -Dsbt.build.lm.moduleName="lm-coursier" \
+    -Dsbt.build.lm.version="$SNAPSHOT_VERSION" \
     "set version.in(ThisBuild) := \"$TMP_SBT_VERSION\"" \
     publishLocal
   cd ..
