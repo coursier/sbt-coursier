@@ -71,7 +71,10 @@ lazy val `lm-coursier-tests` = project
       // Fixed in sbt >= 1.2.4 ?
       sys.props(org.apache.logging.log4j.util.LoaderUtil.IGNORE_TCCL_PROPERTY) = "true"
 
-      sys.props.getOrElse("lmcoursier.sbt.version", sys.error("Java property lmcoursier.sbt.version not set"))
+      // would have preferred to throw an exception if the property isn't defined here,
+      // but as scriptedSbt is a setting, this gets evaluated all the time, even when not running
+      // those scripted tests
+      sys.props.getOrElse("lmcoursier.sbt.version", "1.2.3-lm-coursier-SNAPSHOT")
     },
     sbtTestDirectory := sbtTestDirectory.in(`sbt-coursier`).value
   )
