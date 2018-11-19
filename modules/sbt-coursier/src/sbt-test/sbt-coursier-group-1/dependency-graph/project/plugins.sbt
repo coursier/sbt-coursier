@@ -1,8 +1,13 @@
-{
-  sys.props.get("plugin.version") match {
-    case None =>
-      Seq()
-    case Some(pluginVersion) =>
-      Seq(addSbtPlugin("io.get-coursier" % "sbt-coursier" % pluginVersion))
-  }
+addSbtPlugin {
+
+  val name = sys.props.getOrElse(
+    "plugin.name",
+    sys.error("plugin.name Java property not set")
+  )
+  val version = sys.props.getOrElse(
+    "plugin.version",
+    sys.error("plugin.version Java property not set")
+  )
+
+  "io.get-coursier" % name % version
 }

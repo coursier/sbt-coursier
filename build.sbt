@@ -60,23 +60,20 @@ lazy val `lm-coursier` = project
     contrabandFormatsForType in generateContrabands in Compile := DatatypeConfig.getFormats
   )
 
-lazy val `lm-coursier-tests` = project
-  .in(file("modules/lm-coursier/target/scripted"))
+lazy val `sbt-lm-coursier` = project
+  .in(file("modules/sbt-lm-coursier"))
   .enablePlugins(ScriptedPlugin)
   .dependsOn(`lm-coursier`)
   .settings(
-    shared,
-    scriptedSbt := {
-      // https://github.com/scalacenter/zinc/commit/045f19415c5516de5fd7d5da3e571177ef51c780
-      // Fixed in sbt >= 1.2.4 ?
-      sys.props(org.apache.logging.log4j.util.LoaderUtil.IGNORE_TCCL_PROPERTY) = "true"
+    plugin,
+    sbtTestDirectory := sbtTestDirectory.in(`sbt-coursier`).value,
+    scriptedDependencies := {
+      scriptedDependencies.value
 
-      // would have preferred to throw an exception if the property isn't defined here,
-      // but as scriptedSbt is a setting, this gets evaluated all the time, even when not running
-      // those scripted tests
-      sys.props.getOrElse("lmcoursier.sbt.version", "1.2.3-lm-coursier-SNAPSHOT")
-    },
-    sbtTestDirectory := sbtTestDirectory.in(`sbt-coursier`).value
+      // TODO Get those automatically
+      // (but shouldn't scripted itself handle that…?)
+      publishLocal.in(`sbt-shared`).value
+    }
   )
 
 lazy val `sbt-pgp-coursier` = project
@@ -128,7 +125,7 @@ lazy val `sbt-coursier-root` = project
     `sbt-pgp-coursier`,
     `sbt-shading`,
     `lm-coursier`,
-    `lm-coursier-tests`
+    `sbt-lm-coursier`
   )
   .settings(
     shared,
