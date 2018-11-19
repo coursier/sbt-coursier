@@ -2,11 +2,10 @@ package sbt.librarymanagement.coursier
 
 import java.io.{File, OutputStreamWriter}
 
-import _root_.coursier.{Artifact, CachePolicy, FileError, Organization, Project, Resolution, TermDisplay, organizationString}
+import _root_.coursier.{Artifact, Cache, CachePolicy, FileError, Organization, Project, Resolution, TermDisplay, organizationString}
 import _root_.coursier.core.Configuration
 import _root_.coursier.ivy.IvyRepository
 import _root_.coursier.sbtcoursier.{ArtifactsParams, ArtifactsRun, FromSbt, Inputs, InterProjectRepository, ResolutionError, ResolutionParams, ResolutionRun, SbtBootJars, UpdateParams, UpdateRun}
-import _root_.coursier.Cache
 import sbt.internal.librarymanagement.IvySbt
 import sbt.librarymanagement._
 import sbt.util.Logger
