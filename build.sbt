@@ -49,7 +49,7 @@ lazy val `sbt-coursier` = project
 
 lazy val `lm-coursier` = project
   .in(file("modules/lm-coursier"))
-  .enablePlugins(ContrabandPlugin, JsonCodecPlugin, ScriptedPlugin)
+  .enablePlugins(ContrabandPlugin, JsonCodecPlugin)
   .dependsOn(`sbt-shared`)
   .settings(
     shared,
@@ -57,10 +57,22 @@ lazy val `lm-coursier` = project
     managedSourceDirectories in Compile +=
       baseDirectory.value / "src" / "main" / "contraband-scala",
     sourceManaged in (Compile, generateContrabands) := baseDirectory.value / "src" / "main" / "contraband-scala",
-    contrabandFormatsForType in generateContrabands in Compile := DatatypeConfig.getFormats,
-    scalacOptions in (Compile, console) --=
-      Vector("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint"),
-    scriptedSbt := sys.props.getOrElse("lmcoursier.sbt.version", "1.2.3-lm-coursier-SNAPSHOT"),
+    contrabandFormatsForType in generateContrabands in Compile := DatatypeConfig.getFormats
+  )
+
+lazy val `lm-coursier-tests` = project
+  .in(file("modules/lm-coursier/target/scripted"))
+  .enablePlugins(ScriptedPlugin)
+  .dependsOn(`lm-coursier`)
+  .settings(
+    shared,
+    scriptedSbt := {
+      // https://github.com/scalacenter/zinc/commit/045f19415c5516de5fd7d5da3e571177ef51c780
+      // Fixed in sbt >= 1.2.4 ?
+      sys.props(org.apache.logging.log4j.util.LoaderUtil.IGNORE_TCCL_PROPERTY) = "true"
+
+      sys.props.getOrElse("lmcoursier.sbt.version", sys.error("Java property lmcoursier.sbt.version not set"))
+    },
     sbtTestDirectory := sbtTestDirectory.in(`sbt-coursier`).value
   )
 
@@ -112,7 +124,8 @@ lazy val `sbt-coursier-root` = project
     `sbt-coursier`,
     `sbt-pgp-coursier`,
     `sbt-shading`,
-    `lm-coursier`
+    `lm-coursier`,
+    `lm-coursier-tests`
   )
   .settings(
     shared,

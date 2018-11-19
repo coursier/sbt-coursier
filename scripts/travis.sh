@@ -20,18 +20,34 @@ sbtShading() {
 }
 
 runLmCoursierTests() {
+
+  # There's kind of a circular dependency here… we need an sbt version for
+  # the lm-coursier scripted tests, that itself depends on lm-coursier…
+  # Luckily, in the future, it should just be a matter of bumping the
+  # version of lm-coursier in the sbt repository, and binary compatibility
+  # should allow us to change things here, before they're picked up by sbt.
+
+  # first, publish lm-coursier that we can depend on from sbt
+  sbt \
+    ++$TRAVIS_SCALA_VERSION \
+    lm-coursier/test \
+    sbt-shared/publishLocal \
+    lm-coursier/publishLocal
+
+  # second, publish a version of sbt that depends on lm-coursier
   TMP_SBT_VERSION="1.2.3-lm-coursier-SNAPSHOT"
   git clone https://github.com/alexarchambault/sbt.git -b topic/lm-coursier
   cd sbt
-  sbt "set version.in(ThisBuild) := \"$TMP_SBT_VERSION\"" publishLocal
+  sbt \
+    "set version.in(ThisBuild) := \"$TMP_SBT_VERSION\"" \
+    publishLocal
   cd ..
+
+  # lastly, run scripted tests using the custom sbt version published above
   sbt \
     -Dlmcoursier.sbt.version="$TMP_SBT_VERSION" \
     ++$TRAVIS_SCALA_VERSION \
-    sbt-shared/publishLocal \
-    lm-coursier/publishLocal \
-    lm-coursier/test \
-    "lm-coursier/scripted sbt-coursier-group-2/simple"
+    "lm-coursier-tests/scripted sbt-coursier-group-2/simple"
 }
 
 runSbtCoursierTests() {
