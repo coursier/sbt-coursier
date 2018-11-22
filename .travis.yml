@@ -18,9 +18,6 @@ jobs:
     - env: SBT_PGP_COURSIER=1
     - stage: release
       script: sbt ci-release
-branches:
-  only:
-  - master
 cache:
   directories:
   - $HOME/.ivy2/cache
