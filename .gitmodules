@@ -1,3 +1,6 @@
 [submodule "metadata"]
 	path = metadata
 	url = https://github.com/coursier/handmade-metadata.git
+[submodule "sbt"]
+	path = sbt
+	url = https://github.com/coursier/sbt.git

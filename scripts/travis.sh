@@ -20,10 +20,14 @@ sbtShading() {
 }
 
 runLmCoursierTests() {
-  ./metadata/scripts/with-test-repo.sh sbt \
-    ++$TRAVIS_SCALA_VERSION \
-    lm-coursier/test \
-    "sbt-lm-coursier/scripted shared-$TEST_GROUP/*"
+  if [ "${SBT_SCRIPTED:-""}" = "" ]; then
+    ./metadata/scripts/with-test-repo.sh sbt \
+      ++$TRAVIS_SCALA_VERSION \
+      lm-coursier/test \
+      "sbt-lm-coursier/scripted shared-$TEST_GROUP/*"
+  else
+    sbt ++$TRAVIS_SCALA_VERSION "sbt-lm-coursier-sbt/scripted $SBT_SCRIPTED/*"
+  fi
 }
 
 runSbtCoursierTests() {
