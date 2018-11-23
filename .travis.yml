@@ -18,6 +18,7 @@ jobs:
     - env: SBT_PGP_COURSIER=1
     - env: LM_COURSIER=1 TEST_GROUP=1
     - env: LM_COURSIER=1 TEST_GROUP=2
+    - env: LM_COURSIER=1 SBT_SCRIPTED=dependency-management
     - stage: release
       script: sbt ci-release
 cache:

@@ -66,6 +66,24 @@ lazy val `sbt-lm-coursier` = project
      }
    )
 
+lazy val `sbt-lm-coursier-sbt` = project
+  .in(file("modules/sbt-lm-coursier/target/sbt-scripted-project"))
+  .enablePlugins(ScriptedPlugin)
+  .dependsOn(`sbt-lm-coursier`)
+  .settings(
+    plugin,
+    sbtTestDirectory := baseDirectory.in(ThisBuild).value / "sbt" / "sbt" / "src" / "sbt-test",
+    scriptedDependencies := {
+      scriptedDependencies.value
+
+      // TODO Get those automatically
+      // (but shouldn't scripted itself handle that…?)
+       publishLocal.in(`lm-coursier`).value
+       publishLocal.in(`sbt-coursier-shared`).value
+       publishLocal.in(`sbt-lm-coursier`).value
+     }
+   )
+
 lazy val `sbt-coursier` = project
   .in(file("modules/sbt-coursier"))
   .enablePlugins(ScriptedPlugin)
