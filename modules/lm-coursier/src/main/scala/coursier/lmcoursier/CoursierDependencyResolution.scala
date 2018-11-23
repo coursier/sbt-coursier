@@ -1,12 +1,16 @@
 package coursier.lmcoursier
 
 import java.io.{File, OutputStreamWriter}
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 
 import _root_.coursier.{Artifact, Cache, CachePolicy, FileError, Organization, Resolution, TermDisplay, organizationString}
-import _root_.coursier.core.{Classifier, Configuration, ModuleName}
+import _root_.coursier.core.{Classifier, Configuration, ModuleName, Type}
 import _root_.coursier.extra.Typelevel
 import _root_.coursier.ivy.IvyRepository
 import _root_.coursier.lmcoursier.Inputs.withAuthenticationByHost
+import coursier.maven.{MavenAttributes, Pom}
+import sbt.hack.ScalaArtifactsThing
 import sbt.internal.librarymanagement.IvySbt
 import sbt.librarymanagement._
 import sbt.util.Logger
@@ -48,6 +52,73 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
       case i: IvySbt#Module =>
         i.moduleSettings match {
           case d: ModuleDescriptorConfiguration => d
+          case c: PomConfiguration =>
+
+            // should we use the default charset here?
+            val s = new String(Files.readAllBytes(c.file.toPath), StandardCharsets.UTF_8)
+
+            val node = coursier.core.compatibility.xmlParse(s) match {
+              case Left(e) =>
+                throw new Exception(s"Error parsing POM file ${c.file}: $e")
+              case Right(n) => n
+            }
+
+            val deps = Pom.project(node) match {
+              case Left(e) =>
+                throw new Exception(s"Error parsing POM file ${c.file}: $e")
+              case Right(p) =>
+                p.dependencies
+            }
+
+            // FIXME Here, we convert things to librarymanagement classes, before converting them back to coursier ones…
+
+            val deps0 = deps.toVector.map {
+              case (conf, dep) =>
+                val conf0 = if (conf.isEmpty) Configuration.compile else conf
+                val depConf = if (dep.configuration.isEmpty) Configuration.compile else dep.configuration
+                val exclusions = dep.exclusions.toVector.sorted.map {
+                  case (o, n) =>
+                    InclExclRule(o.value, n.value)
+                }
+                val explicitArtifacts =
+                  if (dep.attributes.isEmpty)
+                    Vector()
+                  else {
+                    val tpe = Some(dep.attributes.`type`).filter(_.nonEmpty).getOrElse(Type.jar)
+                    val art = sbt.librarymanagement.Artifact(dep.module.name.value)
+                      .withType(tpe.value)
+                      .withExtension(MavenAttributes.typeExtension(tpe).value)
+                      .withClassifier(Some(dep.attributes.classifier).filter(_.nonEmpty).map(_.value))
+                    Vector(art)
+                  }
+                ModuleID(dep.module.organization.value, dep.module.name.value, dep.version)
+                  .withExtraAttributes(dep.module.attributes)
+                  .withIsTransitive(dep.transitive)
+                  .withConfigurations(Some(s"${conf0.value}->${depConf.value}"))
+                  .withExclusions(exclusions)
+                  .withExplicitArtifacts(explicitArtifacts)
+            }
+
+            // these are unused anyway
+            val moduleId = ModuleID("dummy", "dummy" ,"dummy")
+            val moduleInfo = ModuleInfo("dummy")
+
+            val desc = ModuleDescriptorConfiguration(moduleId, moduleInfo)
+              .withScalaModuleInfo(c.scalaModuleInfo)
+              .withConfigurations(Configurations.default ++ Configurations.defaultInternal)
+              .withDependencies(deps0)
+
+            // seems sbt adds those too
+            c.scalaModuleInfo.filter(_ => c.autoScalaTools) match {
+              case Some(info) =>
+                // FIXME What about the isDotty param of toolDependencies?
+                desc
+                  .withConfigurations(desc.configurations :+ Configurations.ScalaTool)
+                  .withDependencies(desc.dependencies ++ ScalaArtifactsThing.toolDependencies(info.scalaOrganization, info.scalaFullVersion))
+              case None =>
+                desc
+            }
+
           case other => sys.error(s"unrecognized module settings: $other")
         }
       case _ =>
