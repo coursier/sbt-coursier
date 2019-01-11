@@ -5,5 +5,5 @@ credentials.in(GlobalScope) := Seq(Credentials("", "pgp", "", "test password"))
 pgpSecretRing := baseDirectory.value / "secring.pgp"
 pgpPublicRing := baseDirectory.value / "pubring.pgp"
 
-// seems required by sbt-pgp 1.1.2, even to publish locally
+// seems required by sbt-pgp 1.1.1, even to publish locally
 publishTo := Some("foo" at "https://f.oo")
