@@ -46,7 +46,7 @@ lazy val `sbt-coursier-shared` = project
   .settings(
     plugin,
     generatePropertyFile,
-    libraryDependencies += "com.lihaoyi" %% "utest" % "0.6.4" % Test,
+    libraryDependencies += "com.lihaoyi" %% "utest" % "0.6.6" % Test,
     testFrameworks += new TestFramework("utest.runner.Framework")
   )
 
@@ -113,7 +113,7 @@ lazy val `sbt-shading` = project
     libraryDependencies += "io.get-coursier.jarjar" % "jarjar-core" % "1.0.1-coursier-1" % "shaded",
     // dependencies of jarjar-core - directly depending on these so that they don't get shaded
     libraryDependencies ++= Seq(
-      "com.google.code.findbugs" % "jsr305" % "2.0.2",
+      "com.google.code.findbugs" % "jsr305" % "2.0.3",
       "org.ow2.asm" % "asm-commons" % "7.0",
       "org.ow2.asm" % "asm-util" % "7.0",
       "org.slf4j" % "slf4j-api" % "1.7.25"
