@@ -1,5 +1,5 @@
 $ delete output
 > stage
-$ exec target/universal/stage/bin/maven-plugin-classpath-type
+> check
 $ exists output
 $ delete output
