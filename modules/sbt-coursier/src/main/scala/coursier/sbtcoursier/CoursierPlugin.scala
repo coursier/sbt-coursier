@@ -41,7 +41,7 @@ object CoursierPlugin extends AutoPlugin {
     val coursierClassifiersArtifacts = Keys.coursierClassifiersArtifacts
     val coursierSbtClassifiersArtifacts = Keys.coursierSbtClassifiersArtifacts
 
-    @deprecated("Use sbtCoursierVersion instead", "1.1.0-M9")
+    @deprecated("Use sbtCoursierVersion instead", "1.1.0-M10")
     val coursierVersion = sbtCoursierVersion
 
     val addSbtCoursier: Seq[Def.Setting[_]] = {
