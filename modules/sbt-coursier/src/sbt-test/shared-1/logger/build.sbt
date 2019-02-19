@@ -1,7 +1,7 @@
 val logFile = settingKey[File]("")
 
 // Arbitrary dependency with no transitive dependencies
-libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.25"
+libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.26"
 // We want to control when the cache gets a hit
 coursierCache := baseDirectory.value / "cache"
 logFile := baseDirectory.value / "log"
@@ -44,7 +44,7 @@ TaskKey[Unit]("checkDownloaded") := {
   if (log.last != "stop") {
     sys.error(s"log ended with '${log.last}', not stop")
   }
-  val url = "https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25.jar"
+  val url = "https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.26/slf4j-api-1.7.25.jar"
   val downloadedMsg = s"downloaded $url: true"
   val downloadingMsgStart = s"downloading $url to "
   if (!log.contains(downloadedMsg))
@@ -61,7 +61,7 @@ TaskKey[Unit]("checkFound") := {
   if (log.last != "stop") {
     sys.error(s"log ended with '${log.last}', not stop")
   }
-  val url = "https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25.jar"
+  val url = "https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.26/slf4j-api-1.7.25.jar"
   val msg = s"found $url at "
   if (!log.exists(_.startsWith(msg)))
     sys.error(s"log doesn't contain line starting with '$msg'")
