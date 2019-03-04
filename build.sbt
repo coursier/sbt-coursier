@@ -113,8 +113,8 @@ lazy val `sbt-shading` = project
     // dependencies of jarjar-core - directly depending on these so that they don't get shaded
     libraryDependencies ++= Seq(
       "com.google.code.findbugs" % "jsr305" % "3.0.2",
-      "org.ow2.asm" % "asm-commons" % "7.0",
-      "org.ow2.asm" % "asm-util" % "7.0",
+      "org.ow2.asm" % "asm-commons" % "7.1",
+      "org.ow2.asm" % "asm-util" % "7.1",
       "org.slf4j" % "slf4j-api" % "1.7.26"
     ),
     scriptedDependencies := {
