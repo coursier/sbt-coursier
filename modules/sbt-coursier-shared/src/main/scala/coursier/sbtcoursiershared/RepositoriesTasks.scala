@@ -2,7 +2,7 @@ package coursier.sbtcoursiershared
 
 import coursier.sbtcoursiershared.SbtCoursierShared.autoImport._
 import coursier.sbtcoursiershared.Structure._
-import sbt.{Classpaths, Def}
+import sbt._
 import sbt.Keys._
 import sbt.librarymanagement.{Resolver, URLRepository}
 
@@ -95,17 +95,11 @@ private[sbtcoursiershared] object RepositoriesTasks {
 
   def coursierRecursiveResolversTask: Def.Initialize[sbt.Task[Seq[Resolver]]] =
     Def.taskDyn {
-
-      val state = sbt.Keys.state.value
-      val projectRef = sbt.Keys.thisProjectRef.value
-
-      val projects = allRecursiveInterDependencies(state, projectRef)
-
-      val t = coursierResolvers
-        .forAllProjects(state, projectRef +: projects)
-        .map(_.values.toVector.flatten)
-
-      Def.task(t.value)
+      val s = state.value
+      val projectRef = thisProjectRef.value
+      val projects = transitiveInterDependencies(s, projectRef)
+      Def.task {
+        coursierResolvers.all(ScopeFilter(inProjects(projectRef +: projects: _*))).value.flatten
+      }
     }
-
 }
