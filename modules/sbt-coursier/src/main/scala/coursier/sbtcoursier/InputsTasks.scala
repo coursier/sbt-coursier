@@ -8,10 +8,11 @@ import coursier.sbtcoursier.Keys._
 import coursier.sbtcoursiershared.SbtCoursierShared.autoImport._
 import coursier.sbtcoursiershared.Structure._
 import sbt.librarymanagement.{Configuration => _, _}
-import sbt.Def
+import sbt.{ Configuration => _, _ }
 import sbt.Keys._
 
 object InputsTasks {
+  import sbt.Project.structure
 
   def coursierConfigurationsTask(
     shadedConfig: Option[(String, Configuration)]
@@ -44,28 +45,26 @@ object InputsTasks {
         .getOrElse(Set.empty)
 
       val projects = structure(state).allProjectRefs.filter(p => projectDeps(p.project))
+      val scopeFilter = ScopeFilter(inProjects(projects: _*))
 
-      val t =
-        for {
-          m <- coursierRecursiveResolvers.forAllProjects(state, projects)
-          n <- coursierResolutions.forAllProjects(state, m.keys.toSeq)
-        } yield
-          n.foldLeft(Map.empty[Seq[Resolver], Seq[ProjectCache]]) {
-            case (caches, (ref, resolutions)) =>
-              val mainResOpt = resolutions.collectFirst {
-                case (k, v) if k(Configuration.compile) => v
-              }
+      Def.task {
+        val n = projects.zip(coursierResolutions.all(scopeFilter).value).toMap
+        val m = projects.zip(coursierRecursiveResolvers.all(scopeFilter).value).toMap
+        n.foldLeft(Map.empty[Seq[Resolver], Seq[ProjectCache]]) {
+          case (caches, (ref, resolutions)) =>
+            val mainResOpt = resolutions.collectFirst {
+              case (k, v) if k(Configuration.compile) => v
+            }
 
-              val r = for {
-                resolvers <- m.get(ref)
-                resolution <- mainResOpt
-              } yield
-                caches.updated(resolvers, resolution.projectCache +: caches.getOrElse(resolvers, Seq.empty))
+            val r = for {
+              resolvers <- m.get(ref)
+              resolution <- mainResOpt
+            } yield
+              caches.updated(resolvers, resolution.projectCache +: caches.getOrElse(resolvers, Seq.empty))
 
-              r.getOrElse(caches)
-          }
-
-      Def.task(t.value)
+            r.getOrElse(caches)
+        }
+      }
     }
 
 }
