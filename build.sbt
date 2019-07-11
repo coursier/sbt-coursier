@@ -139,12 +139,16 @@ lazy val `sbt-shading` = project
     plugin,
     shading,
     libraryDependencies += "io.get-coursier.jarjar" % "jarjar-core" % "1.0.1-coursier-1" % "shaded",
-    // dependencies of jarjar-core - directly depending on these so that they don't get shaded
+    libraryDependencies += ("org.pantsbuild" % "jarjar" % "1.7.2") //  % "shaded")
+      .exclude("org.apache.maven", "maven-plugin-api")
+      .exclude("org.apache.ant", "ant"),
+    // dependencies of jarjar - directly depending on these so that they don't get shaded
     libraryDependencies ++= Seq(
-      "com.google.code.findbugs" % "jsr305" % "3.0.2",
-      "org.ow2.asm" % "asm-commons" % "7.0",
-      "org.ow2.asm" % "asm-util" % "7.0",
-      "org.slf4j" % "slf4j-api" % "1.7.26"
+      "com.google.code.findbugs" % "jsr305" % "3.0.2", // remove
+      "org.ow2.asm" % "asm-commons" % "7.0", // remove
+      "org.ow2.asm" % "asm-util" % "7.0", // remove
+      "org.slf4j" % "slf4j-api" % "1.7.26" // remove
+      // "org.ow2.asm" % "asm" % "7.0",
     ),
     scriptedDependencies := {
       scriptedDependencies.value

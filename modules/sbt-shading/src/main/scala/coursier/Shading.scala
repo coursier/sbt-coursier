@@ -4,10 +4,6 @@ import java.io.{File, FileInputStream}
 import java.util.jar.JarInputStream
 import java.util.zip.{ZipEntry, ZipInputStream}
 
-import com.tonicsystems.jarjar.classpath.ClassPath
-import com.tonicsystems.jarjar.transform.JarTransformer
-import com.tonicsystems.jarjar.transform.config.ClassRename
-import com.tonicsystems.jarjar.transform.jar.DefaultJarProcessor
 import coursier.core.{Configuration, Orders}
 import sbt.file
 
@@ -191,17 +187,49 @@ object Shading {
       baseJar.getName.stripSuffix(".jar") + "-shading.jar"
     )
 
-    val processor = new DefaultJarProcessor
+    def pants(): Unit = {
+      import org.pantsbuild.jarjar._
+      import org.pantsbuild.jarjar.util.CoursierJarProcessor
 
-    for (namespace <- shadeNamespaces)
-      processor.addClassRename(new ClassRename(namespace + ".**", shadingNamespace + ".@0"))
+      def rename(from: String, to: String): Rule = {
+        val rule = new Rule
+        rule.setPattern(from)
+        rule.setResult(to)
+        rule
+      }
 
-    for (cls <- toShadeClasses)
-      processor.addClassRename(new ClassRename(cls, shadingNamespace + ".@0"))
+      val nsRules = shadeNamespaces.toVector.sorted.map { namespace =>
+        rename(namespace + ".**", shadingNamespace + ".@0")
+      }
 
-    val transformer = new JarTransformer(outputJar, processor)
-    val cp = new ClassPath(file(sys.props("user.dir")), (baseJar +: toShadeJars).toArray)
-    transformer.transform(cp)
+      val clsRules = toShadeClasses.map { cls =>
+        rename(cls, shadingNamespace + ".@0")
+      }
+
+      val processor = JJProcessor(nsRules ++ clsRules, verbose = true, skipManifest = false)
+      CoursierJarProcessor.run((baseJar +: toShadeJars).toArray, outputJar, processor.proc, true)
+    }
+
+    def tonic(): Unit = {
+      import com.tonicsystems.jarjar.classpath.ClassPath
+      import com.tonicsystems.jarjar.transform.JarTransformer
+      import com.tonicsystems.jarjar.transform.config.ClassRename
+      import com.tonicsystems.jarjar.transform.jar.DefaultJarProcessor
+
+      val processor = new DefaultJarProcessor
+
+      for (namespace <- shadeNamespaces)
+        processor.addClassRename(new ClassRename(namespace + ".**", shadingNamespace + ".@0"))
+
+      for (cls <- toShadeClasses)
+        processor.addClassRename(new ClassRename(cls, shadingNamespace + ".@0"))
+
+      val transformer = new JarTransformer(outputJar, processor)
+      val cp = new ClassPath(file(sys.props("user.dir")), (baseJar +: toShadeJars).toArray)
+      transformer.transform(cp)
+    }
+
+    pants()
 
     outputJar
   }
