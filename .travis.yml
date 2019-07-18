@@ -17,7 +17,9 @@ jobs:
     - env: SBT_SHADING=1
     - env: SBT_PGP_COURSIER=1
     - env: LM_COURSIER=1 TEST_GROUP=1
+      jdk: openjdk11
     - env: LM_COURSIER=1 TEST_GROUP=2
+      jdk: openjdk11
     - stage: release
       script: ./sbt ci-release
 branches:
