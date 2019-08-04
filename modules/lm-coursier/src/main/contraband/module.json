@@ -20,6 +20,46 @@
           "type": "Map[String, String]"
         }
       ]
+    },
+
+    {
+      "name": "ModuleMatcher",
+      "namespace": "lmcoursier.definitions",
+      "target": "Scala",
+      "parents": [],
+      "type": "record",
+      "fields": [
+        {
+          "name": "matcher",
+          "type": "lmcoursier.definitions.Module"
+        }
+      ],
+      "extraCompanion": [
+        "/** ModuleMatcher that matches to any modules. */",
+        "def all: ModuleMatcher = ModuleMatcher(Module(Organization(\"*\"), ModuleName(\"*\"), Map.empty))"
+      ]
+    },
+
+    {
+      "name": "ModuleMatchers",
+      "namespace": "lmcoursier.definitions",
+      "target": "Scala",
+      "parents": [],
+      "type": "record",
+      "fields": [
+        {
+          "name": "exclude",
+          "type": "Set[lmcoursier.definitions.ModuleMatcher]"
+        },
+        {
+          "name": "include",
+          "type": "Set[lmcoursier.definitions.ModuleMatcher]"
+        }
+      ],
+      "extraCompanion": [
+        "/** ModuleMatchers that matches to any modules. */",
+        "def all: ModuleMatchers = ModuleMatchers(Set.empty, Set.empty)"
+      ]
     }
   ]
 }

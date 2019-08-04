@@ -1,6 +1,5 @@
 package lmcoursier.definitions
 
-import coursier.util.ModuleMatcher
 import lmcoursier.credentials.{Credentials, DirectCredentials, FileCredentials}
 
 // TODO Make private[lmcoursier]
@@ -35,6 +34,27 @@ object ToCoursier {
       coursier.core.ModuleName(module.name.value),
       module.attributes
     )
+
+  def moduleMatcher(matcher: ModuleMatcher): coursier.util.ModuleMatcher =
+    if (matcher == ModuleMatcher.all) coursier.util.ModuleMatcher.all
+    else coursier.util.ModuleMatcher(module(matcher.matcher))
+
+  def moduleMatchers(matcher: ModuleMatchers): coursier.util.ModuleMatchers =
+    if (matcher == ModuleMatchers.all) coursier.util.ModuleMatchers.all
+    else coursier.util.ModuleMatchers(
+      exclude = matcher.exclude map {moduleMatcher},
+      include = matcher.include map {moduleMatcher}
+    )
+
+  def reconciliation(r: Reconciliation): coursier.core.Reconciliation =
+    r match {
+      case Reconciliation.Default => coursier.core.Reconciliation.Default
+      case Reconciliation.Relaxed => coursier.core.Reconciliation.Relaxed
+    }
+
+  def reconciliation(rs: Vector[(ModuleMatchers, Reconciliation)]):
+    Vector[(coursier.util.ModuleMatchers, coursier.core.Reconciliation)] =
+    rs map { case (m, r) => (moduleMatchers(m), reconciliation(r)) }
 
   def dependency(dependency: Dependency): coursier.core.Dependency =
     coursier.core.Dependency(
@@ -147,12 +167,11 @@ object ToCoursier {
   def strict(strict: Strict): coursier.params.rule.Strict =
     coursier.params.rule.Strict(
       include = strict.include.map {
-        case (o, n) => ModuleMatcher(coursier.Module(coursier.Organization(o), coursier.ModuleName(n)))
+        case (o, n) => coursier.util.ModuleMatcher(coursier.Module(coursier.Organization(o), coursier.ModuleName(n)))
       },
       exclude = strict.exclude.map {
-        case (o, n) => ModuleMatcher(coursier.Module(coursier.Organization(o), coursier.ModuleName(n)))
+        case (o, n) => coursier.util.ModuleMatcher(coursier.Module(coursier.Organization(o), coursier.ModuleName(n)))
       },
       // ignoreIfForcedVersion = strict.ignoreIfForcedVersion // should be around once the coursier version is bumped
     )
-
 }
