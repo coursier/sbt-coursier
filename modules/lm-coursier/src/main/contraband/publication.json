@@ -9,19 +9,29 @@
       "fields": [
         {
           "name": "name",
-          "type": "String"
+          "type": "String",
+          "since": "0.0.0"
         },
         {
           "name": "type",
-          "type": "Type"
+          "type": "Type",
+          "since": "0.0.0"
         },
         {
           "name": "ext",
-          "type": "Extension"
+          "type": "Extension",
+          "since": "0.0.0"
         },
         {
           "name": "classifier",
-          "type": "Classifier"
+          "type": "Classifier",
+          "since": "0.0.0"
+        },
+        {
+          "name": "attributes",
+          "type": "Attributes",
+          "since": "0.1.0",
+          "default": "Attributes(`type`, classifier)"
         }
       ]
     }
