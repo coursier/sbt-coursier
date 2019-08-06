@@ -124,7 +124,7 @@ object InputsTasks {
       val artifacts = desc.getAllDependencyArtifacts
 
       val m = artifacts.toVector.flatMap { art =>
-        val pub = Publication("", Type(art.getType), Extension(""), Classifier(""))
+        val pub = Publication(art.getName, Type(art.getType), Extension(art.getExt), Classifier(""))
         art.getConfigurations.map(Configuration(_)).toVector.map { conf =>
           conf -> pub
         }
