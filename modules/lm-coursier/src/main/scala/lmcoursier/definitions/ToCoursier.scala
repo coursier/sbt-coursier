@@ -36,12 +36,10 @@ object ToCoursier {
     )
 
   def moduleMatcher(matcher: ModuleMatcher): coursier.util.ModuleMatcher =
-    if (matcher == ModuleMatcher.all) coursier.util.ModuleMatcher.all
-    else coursier.util.ModuleMatcher(module(matcher.matcher))
+    coursier.util.ModuleMatcher(module(matcher.matcher))
 
   def moduleMatchers(matcher: ModuleMatchers): coursier.util.ModuleMatchers =
-    if (matcher == ModuleMatchers.all) coursier.util.ModuleMatchers.all
-    else coursier.util.ModuleMatchers(
+    coursier.util.ModuleMatchers(
       exclude = matcher.exclude map {moduleMatcher},
       include = matcher.include map {moduleMatcher}
     )
