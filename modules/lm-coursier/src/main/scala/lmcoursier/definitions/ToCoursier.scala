@@ -35,13 +35,14 @@ object ToCoursier {
       module.attributes
     )
 
-  def moduleMatcher(matcher: ModuleMatcher): coursier.util.ModuleMatcher =
-    coursier.util.ModuleMatcher(module(matcher.matcher))
-
   def moduleMatchers(matcher: ModuleMatchers): coursier.util.ModuleMatchers =
     coursier.util.ModuleMatchers(
-      exclude = matcher.exclude map {moduleMatcher},
-      include = matcher.include map {moduleMatcher}
+      exclude = matcher.exclude map { x =>
+        coursier.util.ModuleMatcher(module(x))
+      },
+      include = matcher.include map { x =>
+        coursier.util.ModuleMatcher(module(x))
+      }
     )
 
   def reconciliation(r: Reconciliation): coursier.core.Reconciliation =

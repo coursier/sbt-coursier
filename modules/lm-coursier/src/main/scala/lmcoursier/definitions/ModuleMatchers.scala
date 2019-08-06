@@ -4,9 +4,13 @@
 
 // DO NOT EDIT MANUALLY
 package lmcoursier.definitions
+/**
+ * @param exclude Use "*" in either organization or name to match any.
+ * @param include Use "*" in either organization or name to match any.
+ */
 final class ModuleMatchers private (
-  val exclude: Set[lmcoursier.definitions.ModuleMatcher],
-  val include: Set[lmcoursier.definitions.ModuleMatcher]) extends Serializable {
+  val exclude: Set[lmcoursier.definitions.Module],
+  val include: Set[lmcoursier.definitions.Module]) extends Serializable {
   
   
   
@@ -20,18 +24,18 @@ final class ModuleMatchers private (
   override def toString: String = {
     "ModuleMatchers(" + exclude + ", " + include + ")"
   }
-  private[this] def copy(exclude: Set[lmcoursier.definitions.ModuleMatcher] = exclude, include: Set[lmcoursier.definitions.ModuleMatcher] = include): ModuleMatchers = {
+  private[this] def copy(exclude: Set[lmcoursier.definitions.Module] = exclude, include: Set[lmcoursier.definitions.Module] = include): ModuleMatchers = {
     new ModuleMatchers(exclude, include)
   }
-  def withExclude(exclude: Set[lmcoursier.definitions.ModuleMatcher]): ModuleMatchers = {
+  def withExclude(exclude: Set[lmcoursier.definitions.Module]): ModuleMatchers = {
     copy(exclude = exclude)
   }
-  def withInclude(include: Set[lmcoursier.definitions.ModuleMatcher]): ModuleMatchers = {
+  def withInclude(include: Set[lmcoursier.definitions.Module]): ModuleMatchers = {
     copy(include = include)
   }
 }
 object ModuleMatchers {
   /** ModuleMatchers that matches to any modules. */
   def all: ModuleMatchers = ModuleMatchers(Set.empty, Set.empty)
-  def apply(exclude: Set[lmcoursier.definitions.ModuleMatcher], include: Set[lmcoursier.definitions.ModuleMatcher]): ModuleMatchers = new ModuleMatchers(exclude, include)
+  def apply(exclude: Set[lmcoursier.definitions.Module], include: Set[lmcoursier.definitions.Module]): ModuleMatchers = new ModuleMatchers(exclude, include)
 }
