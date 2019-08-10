@@ -51,7 +51,9 @@ lazy val `lm-coursier-shaded` = project
     shadeNamespaces ++= Set(
       "coursier",
       "shapeless",
-      "argonaut"
+      "argonaut",
+      "jline",
+      "org.fusesource.jansi",
     ),
     libraryDependencies ++= Seq(
       "io.get-coursier" %% "coursier" % coursierVersion0 % "shaded",
