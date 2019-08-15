@@ -43,7 +43,9 @@ object Settings {
         "-Dplugin.name=" + name.value,
         "-Dplugin.version=" + version.value,
         "-Dsbttest.base=" + (sourceDirectory.value / "sbt-test").getAbsolutePath,
-        "-Dcoursier.sbt-launcher.add-plugin=false"
+        "-Dcoursier.sbt-launcher.add-plugin=false",
+        // https://github.com/sbt/sbt/issues/3469#issuecomment-521326813
+        s"-Dsbt.boot.directory=${file(sys.props("user.home")) / ".sbt" / "boot"}"
       ),
       scriptedBufferLog := false,
       sbtPlugin := true,
