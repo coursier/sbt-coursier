@@ -1,7 +1,7 @@
 
 plugins_(
   "com.geirsson"       % "sbt-ci-release"           % "1.4.31",
-  "com.typesafe"       % "sbt-mima-plugin"          % "0.3.0",
+  "com.typesafe"       % "sbt-mima-plugin"          % "0.6.1",
   "org.scala-sbt"      % "sbt-contraband"           % "0.4.4"
 )
 
