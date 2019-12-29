@@ -15,7 +15,7 @@ inThisBuild(List(
   )
 ))
 
-val coursierVersion0 = "2.0.0-RC4-1"
+val coursierVersion0 = "2.0.0-RC5-3"
 
 lazy val `lm-coursier` = project
   .in(file("modules/lm-coursier"))
@@ -25,14 +25,14 @@ lazy val `lm-coursier` = project
     Mima.lmCoursierFilters,
     libraryDependencies ++= Seq(
       "io.get-coursier" %% "coursier" % coursierVersion0,
-      "io.github.alexarchambault" %% "data-class" % "0.2.0" % Provided,
+      "io.github.alexarchambault" %% "data-class" % "0.2.1" % Provided,
       // We depend on librarymanagement-ivy rather than just
       // librarymanagement-core to handle the ModuleDescriptor passed
       // to DependencyResolutionInterface.update, which is an
       // IvySbt#Module (seems DependencyResolutionInterface.moduleDescriptor
       // is ignored).
-      "org.scala-sbt" %% "librarymanagement-ivy" % "1.2.4",
-      "org.scalatest" %% "scalatest" % "3.0.8" % Test
+      "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.1",
+      "org.scalatest" %% "scalatest" % "3.1.0" % Test
     )
   )
 
@@ -56,10 +56,10 @@ lazy val `lm-coursier-shaded` = project
     ),
     libraryDependencies ++= Seq(
       "io.get-coursier" %% "coursier" % coursierVersion0 % "shaded",
-      "io.github.alexarchambault" %% "data-class" % "0.2.0" % Provided,
+      "io.github.alexarchambault" %% "data-class" % "0.2.1" % Provided,
       "org.scala-lang.modules" %% "scala-xml" % "1.2.0", // depending on that one so that it doesn't get shaded
-      "org.scala-sbt" %% "librarymanagement-ivy" % "1.2.4",
-      "org.scalatest" %% "scalatest" % "3.0.8" % Test
+      "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.1",
+      "org.scalatest" %% "scalatest" % "3.1.0" % Test
     ),
     packageBin.in(Shading) := {
       val jar = packageBin.in(Shading).value
@@ -75,7 +75,7 @@ lazy val `sbt-coursier-shared` = project
   .settings(
     plugin,
     generatePropertyFile,
-    libraryDependencies += "com.lihaoyi" %% "utest" % "0.7.1" % Test,
+    libraryDependencies += "com.lihaoyi" %% "utest" % "0.7.2" % Test,
     testFrameworks += new TestFramework("utest.runner.Framework")
   )
 
@@ -146,7 +146,7 @@ lazy val `sbt-shading` = project
   .dependsOn(`sbt-coursier`)
   .settings(
     plugin,
-    libraryDependencies += ("org.pantsbuild" % "jarjar" % "1.7.2")
+    libraryDependencies += ("ch.epfl.scala" % "jarjar" % "1.7.2-patched")
       .exclude("org.apache.maven", "maven-plugin-api")
       .exclude("org.apache.ant", "ant"),
     scriptedDependencies := {
