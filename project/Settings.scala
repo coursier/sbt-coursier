@@ -3,7 +3,7 @@ import java.util.Locale
 
 import sbt._
 import sbt.Keys._
-import sbt.ScriptedPlugin.autoImport.{scriptedBufferLog, scriptedLaunchOpts}
+import sbt.ScriptedPlugin.autoImport.{scriptedBufferLog, scriptedLaunchOpts, scriptedSbt}
 
 import com.jsuereth.sbtpgp._
 import coursier.ShadingPlugin.autoImport.{Shading, shadingNamespace}
@@ -12,7 +12,7 @@ object Settings {
 
   def scala212 = "2.12.10"
 
-  def sbt10Version = "1.0.2"
+  def targetSbtVersion = "1.2.8" // the version of sbt to compile against
 
   private lazy val isAtLeastScala213 = Def.setting {
     import Ordering.Implicits._
@@ -51,8 +51,6 @@ object Settings {
   lazy val plugin =
     shared ++
     Seq(
-      // https://github.com/sbt/sbt/issues/5049#issuecomment-528960415
-      dependencyOverrides := "org.scala-sbt" % "sbt" % "1.2.8" :: Nil,
       scriptedLaunchOpts ++= Seq(
         "-Xmx1024M",
         "-Dplugin.name=" + name.value,
@@ -62,7 +60,8 @@ object Settings {
       ),
       scriptedBufferLog := false,
       sbtPlugin := true,
-      sbtVersion.in(pluginCrossBuild) := sbt10Version
+      sbtVersion.in(pluginCrossBuild) := targetSbtVersion, // sbt/sbt#5049
+      scriptedSbt := sbtVersion.value, // run scripted with the build's sbt version
     )
 
   lazy val shading =
