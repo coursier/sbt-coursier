@@ -1,0 +1,4 @@
+# https://github.com/coursier/coursier/issues/1466
+> test
+> set csrConfiguration ~= (_.withClasspathOrder(false))
+-> test
