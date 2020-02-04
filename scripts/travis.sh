@@ -16,8 +16,6 @@ sbtShading() {
 runLmCoursierTests() {
   if [ "$TEST_GROUP" = 1 ]; then
     SCRIPTED_EXTRA="sbt-lm-coursier/*"
-  elif [ "$TEST_GROUP" = 2 ]; then
-    SCRIPTED_EXTRA="scala-211/*"
   else
     SCRIPTED_EXTRA=""
   fi
@@ -34,8 +32,6 @@ runLmCoursierTests() {
 runSbtCoursierTests() {
   if [ "$TEST_GROUP" = 1 ]; then
     SCRIPTED_EXTRA="sbt-coursier/*"
-  elif [ "$TEST_GROUP" = 2 ]; then
-    SCRIPTED_EXTRA="scala-211/*"
   else
     SCRIPTED_EXTRA=""
   fi
