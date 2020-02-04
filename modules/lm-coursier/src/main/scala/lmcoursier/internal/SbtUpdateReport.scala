@@ -139,9 +139,10 @@ private[internal] object SbtUpdateReport {
     artifactFileOpt: (Module, String, Attributes, Artifact) => Option[File],
     log: Logger,
     keepPomArtifact: Boolean = false,
-    includeSignatures: Boolean = false
+    includeSignatures: Boolean = false,
+    classpathOrder: Boolean,
   ) = {
-    val depArtifacts1 = res.dependencyArtifacts(classifiersOpt)
+    val depArtifacts1 = res.dependencyArtifacts(classifiersOpt, classpathOrder)
 
     val depArtifacts0 =
       if (keepPomArtifact)
@@ -259,7 +260,8 @@ private[internal] object SbtUpdateReport {
     artifactFileOpt: (Module, String, Attributes, Artifact) => Option[File],
     log: Logger,
     keepPomArtifact: Boolean = false,
-    includeSignatures: Boolean = false
+    includeSignatures: Boolean = false,
+    classpathOrder: Boolean,
   ): UpdateReport = {
 
     val configReports = configs.map {
@@ -280,7 +282,8 @@ private[internal] object SbtUpdateReport {
           artifactFileOpt,
           log,
           keepPomArtifact = keepPomArtifact,
-          includeSignatures = includeSignatures
+          includeSignatures = includeSignatures,
+          classpathOrder = classpathOrder,
         )
 
         val reports0 =
