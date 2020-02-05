@@ -44,6 +44,7 @@ object Main extends App {
     for (jar <- jars)
       assert(
         !jar.getAbsolutePath.startsWith(home) ||
+          !jar.getAbsolutePath.toLowerCase(java.util.Locale.ROOT).contains("coursier") ||
           prefixes.exists(jar.getAbsolutePath.startsWith),
         s"JAR for $name ($jar) under $home and not under any of ${prefixes.mkString(", ")}"
       )
