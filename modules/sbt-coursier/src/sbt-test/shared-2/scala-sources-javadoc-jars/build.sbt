@@ -1,3 +1,4 @@
+libraryDependencies += "org.webjars" % "npm" % "4.2.0"
 
 scalaVersion := appConfiguration.value.provider.scalaProvider.version
 

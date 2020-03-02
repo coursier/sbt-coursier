@@ -7,6 +7,7 @@ import coursier.core._
 import coursier.ivy.IvyRepository
 import coursier.maven.MavenRepository
 import coursier.params.rule.RuleResolution
+import coursier.util.Artifact
 import sbt.util.Logger
 
 // private[coursier]
@@ -116,7 +117,21 @@ object ResolutionRun {
             )
         )
         .either()
+        .map(withOptionalArtifacts)
     }
+  }
+
+  private def withOptionalArtifacts(resolution: Resolution) = {
+    resolution.withProjectCache(resolution.projectCache.transform { case (_, (defaultSource, p)) =>
+      val optionalSource = new ArtifactSource {
+        def artifacts(dependency: Dependency, project: Project, overrideClassifiers: Option[Seq[Classifier]]): Seq[(Publication, Artifact)] = {
+          defaultSource
+            .artifacts(dependency, project, overrideClassifiers)
+            .map { case (p, a) => (p, a.withOptional(a.optional || dependency.optional)) }
+        }
+      }
+      (optionalSource, p)
+    })
   }
 
   def resolutions(

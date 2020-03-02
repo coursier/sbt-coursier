@@ -11,3 +11,5 @@ addSbtPlugin {
 
   "io.get-coursier" % name % version
 }
+
+libraryDependencies += "org.webjars" % "npm" % "4.2.0"

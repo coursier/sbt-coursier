@@ -122,7 +122,8 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
       .map {
         case (config, dep) =>
           val dep0 = dep.withExclusions(dep.exclusions ++ excludeDependencies)
-          (ToCoursier.configuration(config), ToCoursier.dependency(dep0))
+          val dependency = ToCoursier.dependency(dep0)
+          (ToCoursier.configuration(config), dependency.withOptional(dependency.optional || configuration.missingOk))
       }
 
     val configGraphs = Inputs.ivyGraphs(
