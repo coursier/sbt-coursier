@@ -33,7 +33,7 @@ lazy val `lm-coursier` = project
       // is ignored).
       "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.1",
       "org.scalatest" %% "scalatest" % "3.1.1" % Test
-    ),
+    )
   )
 
 lazy val `lm-coursier-shaded` = project
