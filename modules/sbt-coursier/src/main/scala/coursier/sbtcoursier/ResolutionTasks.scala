@@ -17,7 +17,8 @@ import sbt.Keys._
 object ResolutionTasks {
 
   def resolutionsTask(
-    sbtClassifiers: Boolean = false
+    sbtClassifiers: Boolean = false,
+    missingOk: Boolean = false,
   ): Def.Initialize[sbt.Task[Map[Set[Configuration], coursier.Resolution]]] = {
 
     val currentProjectTask: sbt.Def.Initialize[sbt.Task[(Project, Seq[FallbackDependency], Seq[Set[Configuration]])]] =
@@ -161,8 +162,10 @@ object ResolutionTasks {
       )
 
       resOrError match {
-        case Left(err) =>
+        case Left(err) if !missingOk =>
           throw err
+        case Left(_) =>
+          Map(configGraphs map { conf => conf -> Resolution() }: _*)
         case Right(res) =>
           res
       }

@@ -212,8 +212,11 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
       val updateParams0 = updateParams(resolutions, artifacts)
       UpdateRun.update(updateParams0, verbosityLevel, log)
     }
+    def dummyReport: UpdateReport =
+      UpdateReport(new File("."), Vector.empty, UpdateStats(-1L, -1L, -1L, cached = false), Map.empty)
 
-    e.left.map(unresolvedWarningOrThrow(uwconfig, _))
+    if (e.isRight || !conf.missingOk) e.left.map(unresolvedWarningOrThrow(uwconfig, _))
+    else Right(dummyReport)
   }
 
   private def unresolvedWarningOrThrow(
