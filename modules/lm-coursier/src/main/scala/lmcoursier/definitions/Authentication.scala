@@ -6,7 +6,8 @@ import dataclass.data
   user: String,
   password: String,
   optional: Boolean = false,
-  realmOpt: Option[String] = None
+  realmOpt: Option[String] = None,
+  headersOpt: Option[Seq[(String,String)]] = None
 ) {
   override def toString(): String =
     withPassword("****")
