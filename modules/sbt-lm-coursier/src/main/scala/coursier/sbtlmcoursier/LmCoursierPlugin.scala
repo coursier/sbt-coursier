@@ -111,7 +111,7 @@ object LmCoursierPlugin extends AutoPlugin {
 
         val authenticationByRepositoryId = coursierCredentials.value.mapValues { c =>
           val a = c.authentication
-          Authentication(a.user, a.password, a.optional, a.realmOpt,a.headersOpt)
+          Authentication(a.user, a.password, a.optional, a.realmOpt)
         }
         val credentials = credentialsTask.value
         val strict = strictTask.value
