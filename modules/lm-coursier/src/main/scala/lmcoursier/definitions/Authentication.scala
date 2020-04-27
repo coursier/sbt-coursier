@@ -12,7 +12,13 @@ import dataclass._
 ) {
   override def toString(): String =
     withPassword("****")
-    .withHeaders(headers.map((_._1,"****")))
+    .withHeaders(headers.map(x=>(x._1,"****")))
       .productIterator
       .mkString("Authentication(", ", ", ")")
+}
+
+object Authentication {
+
+  def apply(headers: Seq[(String, String)]): Authentication =
+    Authentication("", "", optional = false, None, httpHeaders)
 }
