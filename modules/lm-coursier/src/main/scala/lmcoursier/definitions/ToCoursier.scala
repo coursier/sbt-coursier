@@ -23,12 +23,12 @@ object ToCoursier {
       coursier.core.Classifier(publication.classifier.value)
     )
 
-  def authentication(authentication: Authentication): coursier.core.Authentication = authentication.headersOpt match {
-    case None =>
+  def authentication(authentication: Authentication): coursier.core.Authentication = authentication.headers match {
+    case Nil =>
     coursier.core.Authentication(authentication.user, authentication.password)
       .withOptional(authentication.optional)
       .withRealmOpt(authentication.realmOpt)
-    case Some(headers) => coursier.core.Authentication(headers)
+    case headers => coursier.core.Authentication(headers)
       .withOptional(authentication.optional)
       .withRealmOpt(authentication.realmOpt)
       .withPassOnRedirect(true)

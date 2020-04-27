@@ -8,10 +8,11 @@ import dataclass._
   optional: Boolean = false,
   realmOpt: Option[String] = None,
   @since
-  headersOpt: Option[Seq[(String,String)]] = None
+  headers: Seq[(String,String)] = Nil
 ) {
   override def toString(): String =
     withPassword("****")
+    .withHeaders(headers.map((_._1,"****")))
       .productIterator
       .mkString("Authentication(", ", ", ")")
 }
