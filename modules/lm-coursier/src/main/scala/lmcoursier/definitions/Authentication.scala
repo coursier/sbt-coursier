@@ -20,5 +20,5 @@ import dataclass._
 object Authentication {
 
   def apply(headers: Seq[(String, String)]): Authentication =
-    Authentication("", "", optional = false, None, httpHeaders)
+    Authentication("", "", optional = false, None, headers)
 }
