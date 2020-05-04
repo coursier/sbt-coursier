@@ -155,17 +155,16 @@ object ResolutionTasks {
             .withForceVersion(userForceVersions.map { case (k, v) => (ToCoursier.module(k), v) }.toMap)
             .withTypelevel(typelevel)
             .addReconciliation(versionReconciliations0: _*),
-          strictOpt = strictOpt
+          strictOpt = strictOpt,
+          missingOk = missingOk,
         ),
         verbosityLevel,
         log
       )
 
       resOrError match {
-        case Left(err) if !missingOk =>
+        case Left(err) =>
           throw err
-        case Left(_) =>
-          Map(configGraphs map { conf => conf -> Resolution() }: _*)
         case Right(res) =>
           res
       }
