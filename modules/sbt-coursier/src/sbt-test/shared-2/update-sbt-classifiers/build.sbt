@@ -48,3 +48,4 @@ updateSbtClassifiersCheck := {
     "io.get-coursier" -> s"lm-coursier-shaded_${scalaBinaryVersion.value}"
   )
 }
+
