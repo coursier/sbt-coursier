@@ -19,7 +19,8 @@ object ArtifactsTasks {
     withClassifiers: Boolean,
     sbtClassifiers: Boolean = false,
     ignoreArtifactErrors: Boolean = false,
-    includeSignatures: Boolean = false
+    includeSignatures: Boolean = false,
+    missingOk: Boolean = false
   ): Def.Initialize[sbt.Task[Map[Artifact, File]]] = {
 
     val resTask: sbt.Def.Initialize[sbt.Task[Seq[Resolution]]] =
@@ -72,6 +73,7 @@ object ArtifactsTasks {
           .withFollowHttpToHttpsRedirections(true),
         parallel = parallelDownloads,
         classpathOrder = true,
+        forceFetch = missingOk
       )
 
       val resOrError = ArtifactsRun.artifacts(

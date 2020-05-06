@@ -176,6 +176,7 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
         cache = cache0,
         parallel = conf.parallelDownloads,
         classpathOrder = conf.classpathOrder,
+        forceFetch = conf.missingOk,
       )
 
     val sbtBootJarOverrides = SbtBootJars(

@@ -143,11 +143,13 @@ object CoursierPlugin extends AutoPlugin {
     coursierArtifacts := ArtifactsTasks.artifactsTask(withClassifiers = false).value,
     coursierSignedArtifacts := ArtifactsTasks.artifactsTask(withClassifiers = false, includeSignatures = true).value,
     coursierClassifiersArtifacts := ArtifactsTasks.artifactsTask(
-      withClassifiers = true
+      withClassifiers = true,
+      missingOk = true,
     ).value,
     coursierSbtClassifiersArtifacts := ArtifactsTasks.artifactsTask(
       withClassifiers = true,
-      sbtClassifiers = true
+      sbtClassifiers = true,
+      missingOk = true
     ).value,
     update := UpdateTasks.updateTask(
       shadedConfigOpt,
