@@ -149,17 +149,11 @@ lazy val `sbt-shading` = project
   .in(file("modules/sbt-shading"))
   .enablePlugins(ScriptedPlugin)
   .disablePlugins(MimaPlugin)
-  .dependsOn(`sbt-coursier`)
   .settings(
     plugin,
     libraryDependencies += ("ch.epfl.scala" % "jarjar" % "1.7.2-patched")
       .exclude("org.apache.maven", "maven-plugin-api")
-      .exclude("org.apache.ant", "ant"),
-    scriptedDependencies := {
-      scriptedDependencies.value
-      // TODO Get dependency projects automatically
-      scriptedDependencies.in(`sbt-coursier`).value
-    }
+      .exclude("org.apache.ant", "ant")
   )
 
 lazy val `sbt-coursier-root` = project

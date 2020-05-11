@@ -1,3 +1,5 @@
+package foo
+
 import java.io.File
 import java.nio.file.Files
 
@@ -5,9 +7,26 @@ import argonaut._
 
 object Main extends App {
 
+  def excludeCheck(): Unit = {
+    val className = "shapeless.HList"
+    val loader = Thread.currentThread.getContextClassLoader
+
+    val found =
+      try {
+        loader.loadClass(className)
+        true
+      } catch {
+        case _: java.lang.ClassNotFoundException => false
+      }
+
+    assert(!found, s"Expected class $className not to be found")
+  }
+
+  excludeCheck()
+
   val expectedClassName =
-    if (args.headOption == Some("--shaded"))
-      "test.shaded.argonaut.Json"
+    if (args.contains("--shaded"))
+      "foo.shaded.argonaut.Json"
     else
       // Don't use the literal "argonaut.Json", that seems to get
       // changed to "test.shaded.argonaut.Json" by shading

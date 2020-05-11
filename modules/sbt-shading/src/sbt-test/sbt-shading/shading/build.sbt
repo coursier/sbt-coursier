@@ -1,9 +1,11 @@
 
-enablePlugins(coursier.ShadingPlugin)
-shadingNamespace := "test.shaded"
+enablePlugins(ShadingPlugin)
+shadedModules += "io.argonaut" %% "argonaut"
+shadingRules += ShadingRule.moveUnder("argonaut", "test.shaded")
+validNamespaces += "test"
 
 libraryDependencies ++= Seq(
-  "io.argonaut" %% "argonaut" % "6.2-RC2" % "shaded",
+  "io.argonaut" %% "argonaut" % "6.2-RC2",
   "org.scala-lang" % "scala-reflect" % scalaVersion.value // not shading that one
 )
 
