@@ -64,6 +64,14 @@ addPgpKeys() {
   done
 }
 
+./sbt publishLocal
+for i in $(find "$HOME/.ivy2/local/io.get-coursier/"* -name ivy.xml); do
+  echo "$i:"
+  echo
+  cat "$i"
+  echo
+done
+
 
 if sbtShading; then
   runSbtShadingTests
