@@ -54,8 +54,6 @@ object Settings {
       dependencyOverrides := "org.scala-sbt" % "sbt" % targetSbtVersion :: Nil,
       scriptedLaunchOpts ++= Seq(
         "-Xmx1024M",
-        "-Dplugin.name=" + name.value,
-        "-Dplugin.version=" + version.value,
         "-Dcoursier.sbt-launcher.add-plugin=true",
         "-Dcoursier.sbt-launcher.plugin=" + name.value,
         "-Dcoursier.sbt-launcher.plugin-version=" + version.value
