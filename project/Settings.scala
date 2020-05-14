@@ -11,7 +11,7 @@ object Settings {
 
   def scala212 = "2.12.10"
 
-  def targetSbtVersion = "1.2.8"
+  def targetSbtVersion = "1.3.1"
 
   private lazy val isAtLeastScala213 = Def.setting {
     import Ordering.Implicits._
@@ -56,8 +56,9 @@ object Settings {
         "-Xmx1024M",
         "-Dplugin.name=" + name.value,
         "-Dplugin.version=" + version.value,
-        "-Dsbttest.base=" + (sourceDirectory.value / "sbt-test").getAbsolutePath,
-        "-Dcoursier.sbt-launcher.add-plugin=false"
+        "-Dcoursier.sbt-launcher.add-plugin=true",
+        "-Dcoursier.sbt-launcher.plugin=" + name.value,
+        "-Dcoursier.sbt-launcher.plugin-version=" + version.value
       ),
       scriptedBufferLog := false,
       sbtPlugin := true,
