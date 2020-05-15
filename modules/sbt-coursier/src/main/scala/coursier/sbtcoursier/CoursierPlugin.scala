@@ -162,6 +162,7 @@ object CoursierPlugin extends AutoPlugin {
       withClassifiers = true,
       sbtClassifiers = true
     ).value,
+    evicted := EvictedTasks.evictedTask().value,
     coursierConfigGraphs := InputsTasks.ivyGraphsTask.value,
     coursierSbtClassifiersModule := classifiersModule.in(updateSbtClassifiers).value,
     coursierConfigurations := InputsTasks.coursierConfigurationsTask(None).value,
