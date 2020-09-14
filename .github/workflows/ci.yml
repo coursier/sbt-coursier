@@ -3,6 +3,7 @@ on:
   push:
     branches:
     - master
+    - tweak-ci
     tags:
     - "v*"
   pull_request:
