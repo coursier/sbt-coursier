@@ -11,11 +11,12 @@ on:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
-    shell: bash
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        PLUGIN: [sbt-coursier, sbt-lm-coursier]
+        TEST_GROUP: [1, 2]
     steps:
     - uses: actions/checkout@v2
       with:
@@ -25,26 +26,7 @@ jobs:
     - uses: olafurpg/setup-scala@v7
       with:
         java-version: adopt@1.8.0-232
-    - name: "sbt-coursier group 1"
-      run: scripts/ci.sh
-      env:
-        SBT_COURSIER: 1
-        TEST_GROUP: 1
-    - name: "sbt-coursier group 2"
-      run: scripts/ci.sh
-      env:
-        SBT_COURSIER: 1
-        TEST_GROUP: 2
-    - name: "sbt-lm-coursier group 1"
-      run: scripts/ci.sh
-      env:
-        LM_COURSIER: 1
-        TEST_GROUP: 1
-    - name: "sbt-lm-coursier group 2"
-      run: scripts/ci.sh
-      env:
-        LM_COURSIER: 1
-        TEST_GROUP: 2
+    - run: scripts/ci.sh
 
   publish:
     needs: test
