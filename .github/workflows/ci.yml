@@ -1,0 +1,59 @@
+name: CI
+on:
+  push:
+    branches:
+    - master
+    tags:
+    - "v*"
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: coursier/cache-action@v4
+    - uses: olafurpg/setup-scala@v7
+      with:
+        java-version: adopt@1.8.0-232
+    - name: "sbt-coursier group 1"
+      run: scripts/ci.sh
+      env:
+        SBT_COURSIER: 1
+        TEST_GROUP: 1
+    - name: "sbt-coursier group 2"
+      run: scripts/ci.sh
+      env:
+        SBT_COURSIER: 1
+        TEST_GROUP: 2
+    - name: "sbt-lm-coursier group 1"
+      run: scripts/ci.sh
+      env:
+        LM_COURSIER: 1
+        TEST_GROUP: 1
+    - name: "sbt-lm-coursier group 2"
+      run: scripts/ci.sh
+      env:
+        LM_COURSIER: 1
+        TEST_GROUP: 2
+
+  publish:
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: coursier/cache-action@v4
+      - uses: olafurpg/setup-scala@v7
+      - uses: olafurpg/setup-gpg@v2
+      - name: Release
+        run: ./sbt ci-release
+        env:
+          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+          PGP_SECRET: ${{ secrets.PGP_SECRET }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
