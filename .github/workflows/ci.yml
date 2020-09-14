@@ -17,6 +17,9 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        submodules: true
     - uses: coursier/cache-action@v4
     - uses: olafurpg/setup-scala@v7
       with:
@@ -48,6 +51,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
       - uses: coursier/cache-action@v4
       - uses: olafurpg/setup-scala@v7
       - uses: olafurpg/setup-gpg@v2
