@@ -11,6 +11,7 @@ on:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    shell: bash
     strategy:
       fail-fast: false
       matrix:
