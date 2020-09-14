@@ -27,6 +27,7 @@ jobs:
       with:
         java-version: adopt@1.8.0-232
     - run: scripts/ci.sh
+      shell: bash
 
   publish:
     needs: test
