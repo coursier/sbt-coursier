@@ -10,6 +10,7 @@ on:
 
 jobs:
   test:
+    name: ${{ matrix.os }} ${{ matrix.PLUGIN }} group ${{ matrix.TEST_GROUP }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -28,6 +29,9 @@ jobs:
         java-version: adopt@1.8.0-232
     - run: scripts/ci.sh
       shell: bash
+      env:
+        PLUGIN: ${{ matrix.PLUGIN }}
+        TEST_GROUP: ${{ matrix.TEST_GROUP }}
 
   publish:
     needs: test
