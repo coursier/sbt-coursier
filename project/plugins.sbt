@@ -3,7 +3,7 @@ addSbtPlugin(("io.github.alexarchambault.sbt" % "sbt-compatibility" % "0.0.8").e
 addSbtPlugin("io.github.alexarchambault.sbt" % "sbt-eviction-rules" % "0.2.0")
 addSbtPlugin("com.github.alexarchambault.tmp" % "sbt-mima-plugin" % "0.7.1-SNAPSHOT")
 
-addSbtPlugin("io.get-coursier" % "sbt-shading" % "2.0.0")
+addSbtPlugin("io.get-coursier" % "sbt-shading" % "2.0.4")
 
 libraryDependencies += "org.scala-sbt" %% "scripted-plugin" % sbtVersion.value
 
