@@ -15,7 +15,7 @@ inThisBuild(List(
   )
 ))
 
-val coursierVersion0 = "2.0.0"
+val coursierVersion0 = "2.0.6"
 
 lazy val `lm-coursier` = project
   .in(file("modules/lm-coursier"))
@@ -25,14 +25,14 @@ lazy val `lm-coursier` = project
     Mima.lmCoursierFilters,
     libraryDependencies ++= Seq(
       "io.get-coursier" %% "coursier" % coursierVersion0,
-      "io.github.alexarchambault" %% "data-class" % "0.2.3" % Provided,
+      "io.github.alexarchambault" %% "data-class" % "0.2.4" % Provided,
       // We depend on librarymanagement-ivy rather than just
       // librarymanagement-core to handle the ModuleDescriptor passed
       // to DependencyResolutionInterface.update, which is an
       // IvySbt#Module (seems DependencyResolutionInterface.moduleDescriptor
       // is ignored).
-      "org.scala-sbt" %% "librarymanagement-ivy" % "1.4.0",
-      "org.scalatest" %% "scalatest" % "3.2.2" % Test
+      "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.4",
+      "org.scalatest" %% "scalatest" % "3.2.3" % Test
     )
   )
 
@@ -61,10 +61,11 @@ lazy val `lm-coursier-shaded` = project
     },
     libraryDependencies ++= Seq(
       "io.get-coursier" %% "coursier" % coursierVersion0,
-      "io.github.alexarchambault" %% "data-class" % "0.2.3" % Provided,
+      "io.github.alexarchambault" %% "data-class" % "0.2.4" % Provided,
+      "org.scala-lang.modules" %% "scala-collection-compat" % "2.2.0",
       "org.scala-lang.modules" %% "scala-xml" % "1.3.0", // depending on that one so that it doesn't get shaded
-      "org.scala-sbt" %% "librarymanagement-ivy" % "1.4.0",
-      "org.scalatest" %% "scalatest" % "3.2.2" % Test
+      "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.4",
+      "org.scalatest" %% "scalatest" % "3.2.3" % Test
     )
   )
 
