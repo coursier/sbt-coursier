@@ -20,27 +20,21 @@ class SbtCoursierCache {
 
   def resolutionOpt(key: ResolutionKey): Option[Map[Configuration, Resolution]] =
     Option(resolutionsCache.get(key))
-  def putResolution(key: ResolutionKey, res: Map[Configuration, Resolution]): Unit = {
-    println(this +" putResolution")
+  def putResolution(key: ResolutionKey, res: Map[Configuration, Resolution]): Unit =
     resolutionsCache.put(key, res)
-  }
 
   def reportOpt(key: ReportKey): Option[UpdateReport] =
     Option(reportsCache.get(key))
-  def putReport(key: ReportKey, report: UpdateReport): Unit = {
-    println(this +" putReport")
+  def putReport(key: ReportKey, report: UpdateReport): Unit =
     reportsCache.put(key, report)
-  }
 
   def clear(): Unit = {
     resolutionsCache.clear()
     reportsCache.clear()
   }
 
-  def isEmpty: Boolean = {
-    println(this + " isEmpty")
+  def isEmpty: Boolean =
     resolutionsCache.isEmpty && reportsCache.isEmpty
-  }
 
 }
 
