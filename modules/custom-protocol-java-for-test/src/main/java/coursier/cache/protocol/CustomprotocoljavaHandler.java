@@ -7,7 +7,7 @@ import java.net.URLStreamHandlerFactory;
 
 import java.io.IOException;
 
-public class CustomprotocoljavaHandler implements URLStreamHandlerFactory {    
+public class CustomprotocoljavaHandler implements URLStreamHandlerFactory {
   public URLStreamHandler createURLStreamHandler(String protocol) {
     return new URLStreamHandler() {
       protected URLConnection openConnection(URL url) throws IOException {

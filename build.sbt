@@ -155,9 +155,9 @@ lazy val customProtocolForTest212 = project
     scalaVersion := scala212,
     organization := "org.example",
     moduleName := "customprotocol-handler",
-    version := "0.1.0"
+    version := "0.1.0",
+    dontPublish
   )
-  .settings(dontPublish)
 
 lazy val customProtocolForTest213 = project
   .in(file("modules/custom-protocol-for-test-2-13"))
@@ -166,9 +166,9 @@ lazy val customProtocolForTest213 = project
     scalaVersion := scala213,
     organization := "org.example",
     moduleName := "customprotocol-handler",
-    version := "0.1.0"
+    version := "0.1.0",
+    dontPublish
   )
-  .settings(dontPublish)
 
 lazy val customProtocolJavaForTest = project
   .in(file("modules/custom-protocol-java-for-test"))
@@ -176,9 +176,9 @@ lazy val customProtocolJavaForTest = project
     crossPaths := false,
     organization := "org.example",
     moduleName := "customprotocoljava-handler",
-    version := "0.1.0"
+    version := "0.1.0",
+    dontPublish
   )
-  .settings(dontPublish)
 
 lazy val `sbt-coursier-root` = project
   .in(file("."))

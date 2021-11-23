@@ -129,12 +129,12 @@ final class ResolutionSpec extends AnyPropSpec with Matchers {
     val resolvers = Vector(
       "custom" at "customprotocol://host"
     )
-    
+
     val configuration =
       CoursierConfiguration()
         .withResolvers(resolvers)
 
-    val protocolHandlerConfiguration = 
+    val protocolHandlerConfiguration =
       Some(
         CoursierConfiguration()
           .withProtocolHandlerDependencies(protocolHandlerDependencies)
@@ -170,12 +170,12 @@ final class ResolutionSpec extends AnyPropSpec with Matchers {
     val resolvers = Vector(
       "custom" at "customprotocoljava://host"
     )
-    
+
     val configuration =
       CoursierConfiguration()
         .withResolvers(resolvers)
 
-    val protocolHandlerConfiguration = 
+    val protocolHandlerConfiguration =
       Some(
         CoursierConfiguration()
           .withProtocolHandlerDependencies(protocolHandlerDependencies)

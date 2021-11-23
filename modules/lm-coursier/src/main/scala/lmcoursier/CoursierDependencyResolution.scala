@@ -19,22 +19,24 @@ import coursier.core.Publication
 import scala.util.{Try, Failure}
 
 class CoursierDependencyResolution(
-  conf: CoursierConfiguration, 
+  conf: CoursierConfiguration,
   protocolHandlerConfiguration: Option[CoursierConfiguration],
-  bootstrapingProtocolHandler: Boolean) extends DependencyResolutionInterface {
+  bootstrappingProtocolHandler: Boolean
+) extends DependencyResolutionInterface {
 
-  def this(conf: CoursierConfiguration) = 
+  def this(conf: CoursierConfiguration) =
     this(
-      conf, 
+      conf,
       protocolHandlerConfiguration = None,
-      bootstrapingProtocolHandler = true
+      bootstrappingProtocolHandler = true
     )
 
   lmcoursier.CoursierConfiguration.checkLegacyCache()
 
-  private var protocolHandlerClassloader: Option[ClassLoader] = None
+  private var protocolHandlerClassLoader: Option[ClassLoader] = None
+  private val protocolHandlerClassLoaderLock = new Object
 
-  private def fetchProtocolHandlerClassloader(
+  private def fetchProtocolHandlerClassLoader(
     configuration: UpdateConfiguration,
     uwconfig: UnresolvedWarningConfiguration,
     log: Logger
@@ -49,12 +51,12 @@ class CoursierDependencyResolution(
       }
     }
 
-    val confWithoutUnknownProtocol = 
+    val confWithoutUnknownProtocol =
       conf0.withResolvers(
         conf0.resolvers.filter {
-          case maven: MavenRepository => 
+          case maven: MavenRepository =>
             !isUnknownProtocol(maven.root)
-          case _ => 
+          case _ =>
             true
         }
       )
@@ -62,10 +64,10 @@ class CoursierDependencyResolution(
     val resolution = new CoursierDependencyResolution(
       conf = confWithoutUnknownProtocol,
       protocolHandlerConfiguration = None,
-      bootstrapingProtocolHandler = false
+      bootstrappingProtocolHandler = false
     )
 
-    val fakeModule = 
+    val fakeModule =
       ModuleDescriptorConfiguration(
         ModuleID("lmcoursier", "lmcoursier", "0.1.0"),
         ModuleInfo("protocol-handler")
@@ -75,7 +77,7 @@ class CoursierDependencyResolution(
     val reportOrUnresolved = resolution.update(moduleDescriptor(fakeModule), configuration, uwconfig, log)
 
     val report = reportOrUnresolved match {
-      case Right(report0) => 
+      case Right(report0) =>
         report0
 
       case Left(unresolvedWarning) =>
@@ -84,7 +86,7 @@ class CoursierDependencyResolution(
         throw unresolvedWarning.resolveException
     }
 
-    val jars = 
+    val jars =
       for {
         reportConfiguration <- report.configurations.filter(_.configuration.name == "runtime")
         module <- reportConfiguration.modules
@@ -110,18 +112,13 @@ class CoursierDependencyResolution(
     log: Logger
   ): Either[UnresolvedWarning, UpdateReport] = {
 
-    protocolHandlerClassloader.synchronized {
-      if (bootstrapingProtocolHandler) {
-
-        protocolHandlerClassloader match {
-          case Some(_) => ()
-          case None => {
-            val classloader = fetchProtocolHandlerClassloader(configuration, uwconfig, log)
-            protocolHandlerClassloader = Some(classloader)
-          }
+    if (bootstrappingProtocolHandler && protocolHandlerClassLoader.isEmpty)
+      protocolHandlerClassLoaderLock.synchronized {
+        if (bootstrappingProtocolHandler && protocolHandlerClassLoader.isEmpty) {
+          val classLoader = fetchProtocolHandlerClassLoader(configuration, uwconfig, log)
+          protocolHandlerClassLoader = Some(classLoader)
         }
       }
-    }
 
     val conf = this.conf.withUpdateConfiguration(configuration)
 
@@ -192,7 +189,7 @@ class CoursierDependencyResolution(
           ivyProperties,
           log,
           authenticationByRepositoryId.get(resolver.name).map(ToCoursier.authentication),
-          protocolHandlerClassloader.toSeq,
+          protocolHandlerClassLoader.toSeq,
         )
       }
 
@@ -303,7 +300,7 @@ class CoursierDependencyResolution(
         sbtBootJarOverrides = sbtBootJarOverrides,
         classpathOrder = conf.classpathOrder,
         missingOk = conf.missingOk,
-        classLoaders = protocolHandlerClassloader.toSeq,
+        classLoaders = protocolHandlerClassLoader.toSeq,
       )
 
     val e = for {
@@ -358,17 +355,15 @@ class CoursierDependencyResolution(
 
 object CoursierDependencyResolution {
   def apply(configuration: CoursierConfiguration): DependencyResolution =
-    DependencyResolution(
-      new CoursierDependencyResolution(configuration)
-    )
+    DependencyResolution(new CoursierDependencyResolution(configuration))
 
-  def apply(configuration: CoursierConfiguration, 
+  def apply(configuration: CoursierConfiguration,
             protocolHandlerConfiguration: Option[CoursierConfiguration]): DependencyResolution =
     DependencyResolution(
       new CoursierDependencyResolution(
         configuration,
         protocolHandlerConfiguration,
-        bootstrapingProtocolHandler = true
+        bootstrappingProtocolHandler = true
       )
     )
 
