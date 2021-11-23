@@ -4,15 +4,13 @@ import java.util.Locale
 import sbt._
 import sbt.Keys._
 import sbt.ScriptedPlugin.autoImport.{scriptedBufferLog, scriptedLaunchOpts}
-import sbtcompatibility.SbtCompatibilityPlugin.autoImport._
-import sbtevictionrules.EvictionRulesPlugin.autoImport._
 
 import com.jsuereth.sbtpgp._
 
 object Settings {
 
-  def scala212 = "2.12.13"
-  def scala213 = "2.13.5"
+  def scala212 = "2.12.15"
+  def scala213 = "2.13.7"
 
   def targetSbtVersion = "1.2.8"
 
@@ -38,19 +36,7 @@ object Settings {
     scalacOptions ++= {
       if (isAtLeastScala213.value) Seq("-Ymacro-annotations")
       else Nil
-    },
-    compatibilityRules ++= Seq(
-      "com.eed3si9n" %% "gigahorse-*" % "semver",
-      "org.scala-lang.modules" % "*" % "semver",
-      "org.scala-sbt" % "*" % "semver",
-      "com.typesafe" %% "ssl-config-core" % "semver",
-      "net.java.dev.jna" % "jna*" % "always"
-    ),
-    compatibilityIgnored += "com.swoval" % "apple-file-events",
-    evictionRules ++= Seq(
-      "com.eed3si9n" %% "gigahorse-*" % "semver",
-      "org.scala-lang.modules" %% "*" % "semver"
-    )
+    }
   ) ++ {
     val prop = sys.props.getOrElse("publish.javadoc", "").toLowerCase(Locale.ROOT)
     if (prop == "0" || prop == "false")
@@ -102,5 +88,9 @@ object Settings {
 
       Seq(f)
     }
+
+  lazy val dontPublish = Seq(
+    publish := {}
+  )
 
 }

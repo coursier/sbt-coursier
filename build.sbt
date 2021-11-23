@@ -15,7 +15,7 @@ inThisBuild(List(
   )
 ))
 
-val coursierVersion0 = "2.0.16"
+val coursierVersion0 = "2.1.0-M1-1"
 val lmVersion = "1.3.4"
 val lm2_13Version = "1.5.0-M3"
 
@@ -39,7 +39,19 @@ lazy val `lm-coursier` = project
         else lm2_13Version
       },
       "org.scalatest" %% "scalatest" % "3.2.7" % Test
-    )
+    ),
+    Test / test := {
+      (publishLocal in customProtocolForTest212).value
+      (publishLocal in customProtocolForTest213).value
+      (publishLocal in customProtocolJavaForTest).value
+      (Test / test).value
+    },
+    Test / testOnly := {
+      (publishLocal in customProtocolForTest212).value
+      (publishLocal in customProtocolForTest213).value
+      (publishLocal in customProtocolJavaForTest).value
+      (Test / testOnly).evaluated
+    }
   )
 
 lazy val `lm-coursier-shaded` = project
@@ -54,6 +66,15 @@ lazy val `lm-coursier-shaded` = project
     unmanagedSourceDirectories.in(Compile) := unmanagedSourceDirectories.in(Compile).in(`lm-coursier`).value,
     shadedModules += "io.get-coursier" %% "coursier",
     validNamespaces += "lmcoursier",
+    validEntries ++= Set(
+      // FIXME Ideally, we should just strip those from the resulting JAR…
+      "README", // from google-collections via plexus-archiver (see below)
+      // from plexus-util via plexus-archiver (see below)
+      "licenses/extreme.indiana.edu.license.TXT",
+      "licenses/javolution.license.TXT",
+      "licenses/thoughtworks.TXT",
+      "licenses/"
+    ),
     shadingRules ++= {
       val toShade = Seq(
         "coursier",
@@ -62,7 +83,15 @@ lazy val `lm-coursier-shaded` = project
         "org.fusesource",
         "macrocompat",
         "io.github.alexarchambault.windowsansi",
-        "concurrentrefhashmap"
+        "concurrentrefhashmap",
+        // pulled by the plexus-archiver stuff that coursier-cache
+        // depends on for now… can hopefully be removed in the future
+        "com.google.common",
+        "org.apache.commons",
+        "org.apache.xbean",
+        "org.codehaus",
+        "org.iq80",
+        "org.tukaani"
       )
       for (ns <- toShade)
         yield ShadingRule.moveUnder(ns, "lmcoursier.internal.shaded")
@@ -134,6 +163,38 @@ lazy val `sbt-coursier` = project
       publishLocal.in(`lm-coursier`).value
       publishLocal.in(`sbt-coursier-shared`).value
     }
+  )
+
+lazy val customProtocolForTest212 = project
+  .in(file("modules/custom-protocol-for-test-2-12"))
+  .settings(
+    sourceDirectory := file("modules/custom-protocol-for-test/src").toPath.toAbsolutePath.toFile,
+    scalaVersion := scala212,
+    organization := "org.example",
+    moduleName := "customprotocol-handler",
+    version := "0.1.0",
+    dontPublish
+  )
+
+lazy val customProtocolForTest213 = project
+  .in(file("modules/custom-protocol-for-test-2-13"))
+  .settings(
+    sourceDirectory := file("modules/custom-protocol-for-test/src").toPath.toAbsolutePath.toFile,
+    scalaVersion := scala213,
+    organization := "org.example",
+    moduleName := "customprotocol-handler",
+    version := "0.1.0",
+    dontPublish
+  )
+
+lazy val customProtocolJavaForTest = project
+  .in(file("modules/custom-protocol-java-for-test"))
+  .settings(
+    crossPaths := false,
+    organization := "org.example",
+    moduleName := "customprotocoljava-handler",
+    version := "0.1.0",
+    dontPublish
   )
 
 lazy val `sbt-coursier-root` = project
