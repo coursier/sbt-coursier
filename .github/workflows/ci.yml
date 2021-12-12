@@ -31,7 +31,6 @@ jobs:
     - uses: coursier/setup-action@v1.2.0-M1
       with:
         jvm: 8
-        apps: sbt-launcher
     - run: scripts/ci.sh
       shell: bash
       env:
@@ -51,10 +50,9 @@ jobs:
       - uses: coursier/setup-action@v1.2.0-M1
         with:
           jvm: 8
-          apps: sbt-launcher
       - uses: olafurpg/setup-gpg@v3
       - name: Release
-        run: sbt ci-release
+        run: sbtn ci-release
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}

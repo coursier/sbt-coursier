@@ -1,13 +1,7 @@
 #!/usr/bin/env bash
 set -euvx
 
-if [ "$(expr substr $(uname -s) 1 5 2>/dev/null)" == "Linux" ]; then
-  SBT="sbt -C--plugin-version=2.0.0-RC6-8"
-elif [ "$(uname)" == "Darwin" ]; then
-  SBT="sbt -C--plugin-version=2.0.0-RC6-8"
-else
-  SBT="sbt.bat -C--plugin-version=2.0.0-RC6-8"
-fi
+SBT="sbtn -C--plugin-version=2.0.0-RC6-8"
 
 lmCoursier() {
   [ "${PLUGIN:-""}" = "sbt-lm-coursier" ]
