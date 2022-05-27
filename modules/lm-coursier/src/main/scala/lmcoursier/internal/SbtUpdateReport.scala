@@ -12,6 +12,7 @@ import coursier.maven.MavenAttributes
 import coursier.util.Artifact
 import sbt.librarymanagement.{Artifact => _, Configuration => _, _}
 import sbt.util.Logger
+import CompatParColls.Converters._
 
 private[internal] object SbtUpdateReport {
 
@@ -303,7 +304,7 @@ private[internal] object SbtUpdateReport {
     classLoaders: Seq[ClassLoader],
   ): UpdateReport = {
 
-    val configReports = resolutions.map {
+    val configReports = resolutions.par.map {
       case (config, subRes) =>
 
         val reports = moduleReports(
