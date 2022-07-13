@@ -41,15 +41,15 @@ lazy val `lm-coursier` = project
       "org.scalatest" %% "scalatest" % "3.2.12" % Test
     ),
     Test / test := {
-      (publishLocal in customProtocolForTest212).value
-      (publishLocal in customProtocolForTest213).value
-      (publishLocal in customProtocolJavaForTest).value
+      (customProtocolForTest212 / publishLocal).value
+      (customProtocolForTest213 / publishLocal).value
+      (customProtocolJavaForTest / publishLocal).value
       (Test / test).value
     },
     Test / testOnly := {
-      (publishLocal in customProtocolForTest212).value
-      (publishLocal in customProtocolForTest213).value
-      (publishLocal in customProtocolJavaForTest).value
+      (customProtocolForTest212 / publishLocal).value
+      (customProtocolForTest213 / publishLocal).value
+      (customProtocolJavaForTest / publishLocal).value
       (Test / testOnly).evaluated
     }
   )
@@ -63,7 +63,7 @@ lazy val `lm-coursier-shaded` = project
     Mima.settings,
     Mima.lmCoursierFilters,
     Mima.lmCoursierShadedFilters,
-    unmanagedSourceDirectories.in(Compile) := unmanagedSourceDirectories.in(Compile).in(`lm-coursier`).value,
+    (Compile / unmanagedSourceDirectories) := (`lm-coursier` / unmanagedSourceDirectories.in(Compile))(Compile / unmanagedSourceDirectories).value,
     shadedModules += "io.get-coursier" %% "coursier",
     validNamespaces += "lmcoursier",
     validEntries ++= Set(
@@ -127,7 +127,7 @@ lazy val `sbt-coursier-shared-shaded` = project
   .settings(
     plugin,
     generatePropertyFile,
-    unmanagedSourceDirectories.in(Compile) := unmanagedSourceDirectories.in(Compile).in(`sbt-coursier-shared`).value
+    (Compile / unmanagedSourceDirectories) := (`sbt-coursier-shared` / unmanagedSourceDirectories.in(Compile))(Compile / unmanagedSourceDirectories).value
   )
 
 lazy val `sbt-lm-coursier` = project
@@ -137,14 +137,14 @@ lazy val `sbt-lm-coursier` = project
   .dependsOn(`sbt-coursier-shared-shaded`)
   .settings(
     plugin,
-    sbtTestDirectory := sbtTestDirectory.in(`sbt-coursier`).value,
+    sbtTestDirectory := (`sbt-coursier` / sbtTestDirectory).value,
     scriptedDependencies := {
       scriptedDependencies.value
 
       // TODO Get those automatically
       // (but shouldn't scripted itself handle that…?)
-       publishLocal.in(`lm-coursier-shaded`).value
-       publishLocal.in(`sbt-coursier-shared-shaded`).value
+       (`lm-coursier-shaded` / publishLocal).value
+       (`sbt-coursier-shared-shaded` / publishLocal).value
      }
    )
 
@@ -160,8 +160,8 @@ lazy val `sbt-coursier` = project
 
       // TODO Get dependency projects automatically
       // (but shouldn't scripted itself handle that…?)
-      publishLocal.in(`lm-coursier`).value
-      publishLocal.in(`sbt-coursier-shared`).value
+      (`lm-coursier` / publishLocal).value
+      (`sbt-coursier-shared` / publishLocal).value
     }
   )
 
@@ -210,6 +210,6 @@ lazy val `sbt-coursier-root` = project
   )
   .settings(
     shared,
-    skip.in(publish) := true
+    (publish / skip) := true
   )
 
