@@ -39,7 +39,12 @@ lazy val `lm-coursier` = project
         else lm2_13Version
       },
       "org.scalatest" %% "scalatest" % "3.2.12" % Test
-    ),
+    ) ++ {
+      if (scalaBinaryVersion.value == "2.12")
+        Seq()
+      else
+        Seq("org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.4")
+    },
     Test / test := {
       (publishLocal in customProtocolForTest212).value
       (publishLocal in customProtocolForTest213).value
