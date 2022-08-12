@@ -15,7 +15,7 @@ inThisBuild(List(
   )
 ))
 
-val coursierVersion0 = "2.1.0-M5"
+val coursierVersion0 = "2.1.0-M6-49-gff26f8e39"
 val lmVersion = "1.3.4"
 val lm2_13Version = "1.5.0-M3"
 
@@ -38,7 +38,7 @@ lazy val `lm-coursier` = project
         if (scalaBinaryVersion.value == "2.12") lmVersion
         else lm2_13Version
       },
-      "org.scalatest" %% "scalatest" % "3.2.12" % Test
+      "org.scalatest" %% "scalatest" % "3.2.13" % Test
     ),
     Test / test := {
       (customProtocolForTest212 / publishLocal).value
@@ -78,8 +78,6 @@ lazy val `lm-coursier-shaded` = project
     shadingRules ++= {
       val toShade = Seq(
         "coursier",
-        "shapeless",
-        "argonaut",
         "org.fusesource",
         "macrocompat",
         "io.github.alexarchambault.windowsansi",
@@ -91,7 +89,8 @@ lazy val `lm-coursier-shaded` = project
         "org.apache.xbean",
         "org.codehaus",
         "org.iq80",
-        "org.tukaani"
+        "org.tukaani",
+        "com.github.plokhotnyuk.jsoniter_scala"
       )
       for (ns <- toShade)
         yield ShadingRule.moveUnder(ns, "lmcoursier.internal.shaded")
@@ -99,13 +98,13 @@ lazy val `lm-coursier-shaded` = project
     libraryDependencies ++= Seq(
       "io.get-coursier" %% "coursier" % coursierVersion0,
       "io.github.alexarchambault" %% "data-class" % "0.2.5" % Provided,
-      "org.scala-lang.modules" %% "scala-collection-compat" % "2.7.0",
+      "org.scala-lang.modules" %% "scala-collection-compat" % "2.8.1",
       "org.scala-lang.modules" %% "scala-xml" % "2.1.0", // depending on that one so that it doesn't get shaded
       "org.scala-sbt" %% "librarymanagement-ivy" % {
         if (scalaBinaryVersion.value == "2.12") lmVersion
         else lm2_13Version
       },
-      "org.scalatest" %% "scalatest" % "3.2.12" % Test
+      "org.scalatest" %% "scalatest" % "3.2.13" % Test
     )
   )
 
@@ -116,7 +115,7 @@ lazy val `sbt-coursier-shared` = project
   .settings(
     plugin,
     generatePropertyFile,
-    libraryDependencies += "com.lihaoyi" %% "utest" % "0.7.11" % Test,
+    libraryDependencies += "com.lihaoyi" %% "utest" % "0.8.0" % Test,
     testFrameworks += new TestFramework("utest.runner.Framework")
   )
 

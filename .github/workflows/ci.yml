@@ -23,7 +23,7 @@ jobs:
       run: |
         git config --global core.autocrlf false
         git config --global core.eol lf
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0
         submodules: true
@@ -31,7 +31,7 @@ jobs:
     - uses: coursier/setup-action@v1
       with:
         jvm: 8
-        apps: sbt-launcher
+        apps: sbt
     - run: scripts/ci.sh
       shell: bash
       env:
@@ -43,7 +43,7 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
           submodules: true
@@ -51,7 +51,7 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           jvm: 8
-          apps: sbt-launcher
+          apps: sbt
       - uses: olafurpg/setup-gpg@v3
       - name: Release
         run: sbt ci-release
