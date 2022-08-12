@@ -63,7 +63,7 @@ lazy val `lm-coursier-shaded` = project
     Mima.settings,
     Mima.lmCoursierFilters,
     Mima.lmCoursierShadedFilters,
-    (Compile / unmanagedSourceDirectories) := (`lm-coursier` / unmanagedSourceDirectories.in(Compile))(Compile / unmanagedSourceDirectories).value,
+    (Compile / unmanagedSourceDirectories) := (`lm-coursier` / Compile / unmanagedSourceDirectories).value,
     shadedModules += "io.get-coursier" %% "coursier",
     validNamespaces += "lmcoursier",
     validEntries ++= Set(
@@ -126,7 +126,7 @@ lazy val `sbt-coursier-shared-shaded` = project
   .settings(
     plugin,
     generatePropertyFile,
-    (Compile / unmanagedSourceDirectories) := (`sbt-coursier-shared` / unmanagedSourceDirectories.in(Compile))(Compile / unmanagedSourceDirectories).value
+    (Compile / unmanagedSourceDirectories) := (`sbt-coursier-shared` / Compile / unmanagedSourceDirectories).value
   )
 
 lazy val `sbt-lm-coursier` = project
