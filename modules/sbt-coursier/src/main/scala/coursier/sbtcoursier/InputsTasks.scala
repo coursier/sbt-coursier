@@ -14,23 +14,21 @@ import sbt.Keys._
 object InputsTasks {
   import sbt.Project.structure
 
-  def coursierConfigurationsTask(
-    shadedConfig: Option[(String, Configuration)]
-  ): Def.Initialize[sbt.Task[Map[Configuration, Set[Configuration]]]] =
+  def coursierConfigurationsTask: Def.Initialize[sbt.Task[Map[Configuration, Set[Configuration]]]] =
     Def.task {
-      Inputs.coursierConfigurations(ivyConfigurations.value, shadedConfig.map {
-        case (from, to) =>
-          (from, lmcoursier.definitions.Configuration(to.value))
-      }).map {
+      Inputs.coursierConfigurationsMap(ivyConfigurations.value).map {
         case (k, v) =>
           ToCoursier.configuration(k) -> v.map(ToCoursier.configuration)
       }
     }
 
-  def ivyGraphsTask: Def.Initialize[sbt.Task[Seq[Set[Configuration]]]] =
+  def ivyGraphsTask: Def.Initialize[sbt.Task[Seq[(Configuration, Seq[Configuration])]]] =
     Def.task {
       val p = coursierProject.value
-      Inputs.ivyGraphs(p.configurations).map(_.map(ToCoursier.configuration))
+      Inputs.orderedConfigurations(p.configurations.toSeq).map {
+        case (config, extends0) =>
+          (ToCoursier.configuration(config), extends0.map(ToCoursier.configuration))
+      }
     }
 
   def parentProjectCacheTask: Def.Initialize[sbt.Task[Map[Seq[sbt.librarymanagement.Resolver], Seq[coursier.ProjectCache]]]] =
@@ -53,7 +51,7 @@ object InputsTasks {
         n.foldLeft(Map.empty[Seq[Resolver], Seq[ProjectCache]]) {
           case (caches, (ref, resolutions)) =>
             val mainResOpt = resolutions.collectFirst {
-              case (k, v) if k(Configuration.compile) => v
+              case (Configuration.compile, v) => v
             }
 
             val r = for {

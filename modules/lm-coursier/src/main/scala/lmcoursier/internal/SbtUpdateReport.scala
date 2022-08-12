@@ -5,9 +5,11 @@ import java.net.URL
 import java.util.GregorianCalendar
 import java.util.concurrent.ConcurrentHashMap
 
-import coursier.{Artifact, Attributes, Dependency, Module, Project, Resolution}
-import coursier.core.{Classifier, Configuration, Type}
+import coursier.cache.CacheUrl
+import coursier.{Attributes, Dependency, Module, Project, Resolution}
+import coursier.core.{Classifier, Configuration, Extension, Publication, Type}
 import coursier.maven.MavenAttributes
+import coursier.util.Artifact
 import sbt.librarymanagement.{Artifact => _, Configuration => _, _}
 import sbt.util.Logger
 
@@ -27,83 +29,89 @@ private[internal] object SbtUpdateReport {
       }
   }
 
+  private def infoProperties(project: Project): Seq[(String, String)] =
+    project.properties.filter(_._1.startsWith("info."))
+
   private val moduleId = caching[(Dependency, String, Map[String, String]), ModuleID] {
     case (dependency, version, extraProperties) =>
-      sbt.librarymanagement.ModuleID(
+      val mod = sbt.librarymanagement.ModuleID(
         dependency.module.organization.value,
         dependency.module.name.value,
         version
-      ).withConfigurations(
-        Some(dependency.configuration.value)
-      ).withExtraAttributes(
-        dependency.module.attributes ++ extraProperties
-      ).withExclusions(
-        dependency
-          .exclusions
-          .toVector
-          .map {
-            case (org, name) =>
-              sbt.librarymanagement.InclExclRule()
-                .withOrganization(org.value)
-                .withName(name.value)
-          }
-      ).withIsTransitive(
-        dependency.transitive
       )
+      mod
+        .withConfigurations(
+          Some(dependency.configuration.value)
+            .filter(_.nonEmpty) // ???
+        )
+        .withExtraAttributes(dependency.module.attributes ++ extraProperties)
+        .withExclusions(
+          dependency
+            .exclusions
+            .toVector
+            .map {
+              case (org, name) =>
+                sbt.librarymanagement.InclExclRule()
+                  .withOrganization(org.value)
+                  .withName(name.value)
+            }
+        )
+        .withIsTransitive(dependency.transitive)
   }
 
-  private val artifact = caching[(Module, Map[String, String], Attributes, Artifact), sbt.librarymanagement.Artifact] {
-    case (module, extraProperties, attr, artifact) =>
-      sbt.librarymanagement.Artifact(module.name.value)
-        // FIXME Get these two from publications
-        .withType(attr.`type`.value)
-        .withExtension(MavenAttributes.typeExtension(attr.`type`).value)
+  private val artifact = caching[(Module, Map[String, String], Publication, Artifact, Seq[ClassLoader]), sbt.librarymanagement.Artifact] {
+    case (module, extraProperties, pub, artifact, classLoaders) =>
+      sbt.librarymanagement.Artifact(pub.name)
+        .withType(pub.`type`.value)
+        .withExtension(pub.ext.value)
         .withClassifier(
-          Some(attr.classifier)
+          Some(pub.classifier)
             .filter(_.nonEmpty)
-            .orElse(MavenAttributes.typeDefaultClassifierOpt(attr.`type`))
+            .orElse(MavenAttributes.typeDefaultClassifierOpt(pub.`type`))
             .map(_.value)
         )
-        // .withConfigurations(Vector())
-        .withUrl(Some(new URL(artifact.url)))
+        .withUrl(Some(CacheUrl.url(artifact.url, classLoaders)))
         .withExtraAttributes(module.attributes ++ extraProperties)
   }
 
-  private val moduleReport = caching[(Dependency, Seq[(Dependency, Project)], Project, Seq[(Attributes, Artifact, Option[File])]), ModuleReport] {
-    case (dependency, dependees, project, artifacts) =>
+  private val moduleReport = caching[(Dependency, Seq[(Dependency, ProjectInfo)], Project, Seq[(Publication, Artifact, Option[File])], Seq[ClassLoader]), ModuleReport] {
+    case (dependency, dependees, project, artifacts, classLoaders) =>
 
     val sbtArtifacts = artifacts.collect {
-      case (attr, artifact0, Some(file)) =>
-        (artifact(dependency.module, project.properties.toMap, attr, artifact0), file)
+      case (pub, artifact0, Some(file)) =>
+        (artifact((dependency.module, infoProperties(project).toMap, pub, artifact0, classLoaders)), file)
     }
     val sbtMissingArtifacts = artifacts.collect {
-      case (attr, artifact0, None) =>
-        artifact(dependency.module, project.properties.toMap, attr, artifact0)
+      case (pub, artifact0, None) =>
+        artifact((dependency.module, infoProperties(project).toMap, pub, artifact0, classLoaders))
     }
 
     val publicationDate = project.info.publication.map { dt =>
       new GregorianCalendar(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
     }
 
-    val callers = dependees.map {
+    val callers = dependees.distinct.map {
       case (dependee, dependeeProj) =>
         Caller(
-          moduleId(dependee, dependeeProj.version, dependeeProj.properties.toMap),
-          dependeeProj.configurations.keys.toVector.map(c => ConfigRef(c.value)),
+          moduleId((dependee, dependeeProj.version, Map.empty)),
+          // FIXME Shouldn't we only keep the configurations pulling dependency?
+          dependeeProj.configs,
           dependee.module.attributes ++ dependeeProj.properties,
           // FIXME Set better values here
           isForceDependency = false,
           isChangingDependency = false,
-          isTransitiveDependency = false,
+          isTransitiveDependency = dependency.transitive,
           isDirectlyForceDependency = false
         )
     }
 
-    ModuleReport(
-      moduleId(dependency, project.version, project.properties.toMap),
+    val rep = ModuleReport(
+      moduleId((dependency, project.version, infoProperties(project).toMap)),
       sbtArtifacts.toVector,
       sbtMissingArtifacts.toVector
     )
+
+    rep
       // .withStatus(None)
       .withPublicationDate(publicationDate)
       // .withResolver(None)
@@ -113,7 +121,8 @@ private[internal] object SbtUpdateReport {
       // .withEvictedReason(None)
       // .withProblem(None)
       .withHomepage(Some(project.info.homePage).filter(_.nonEmpty))
-      .withExtraAttributes(dependency.module.attributes ++ project.properties)
+      .withLicenses(project.info.licenses.toVector)
+      .withExtraAttributes(dependency.module.attributes ++ infoProperties(project))
       // .withIsDefault(None)
       // .withBranch(None)
       .withConfigurations(project.configurations.keys.toVector.map(c => ConfigRef(c.value)))
@@ -122,22 +131,46 @@ private[internal] object SbtUpdateReport {
   }
 
   private def moduleReports(
+    thisModule: (Module, String),
     res: Resolution,
+    interProjectDependencies: Seq[Project],
     classifiersOpt: Option[Seq[Classifier]],
     artifactFileOpt: (Module, String, Attributes, Artifact) => Option[File],
+    fullArtifactsOpt: Option[Map[(Dependency, Publication, Artifact), Option[File]]],
     log: Logger,
-    keepPomArtifact: Boolean = false,
-    includeSignatures: Boolean = false
-  ) = {
-    val depArtifacts1 = res.dependencyArtifacts(classifiersOpt)
+    includeSignatures: Boolean,
+    classpathOrder: Boolean,
+    missingOk: Boolean,
+    classLoaders: Seq[ClassLoader]
+  ): Vector[ModuleReport] = {
 
-    val depArtifacts0 =
-      if (keepPomArtifact)
-        depArtifacts1
-      else
-        depArtifacts1.filter {
-          case (_, attr, _) => attr != Attributes(Type.pom, Classifier.empty)
+    val deps = classifiersOpt match {
+      case Some(classifiers) =>
+        res.dependencyArtifacts(Some(classifiers.toSeq), classpathOrder)
+      case None =>
+        res.dependencyArtifacts(None, classpathOrder)
+    }
+
+    val depArtifacts1 = fullArtifactsOpt match {
+      case Some(map) =>
+        deps.map {
+          case (d, p, a) =>
+            val d0 = d.withAttributes(d.attributes.withClassifier(p.classifier))
+            val a0 = if (missingOk) a.withOptional(true) else a
+            val f = map.get((d0, p, a0)).flatten
+            (d, p, a0, f) // not d0
         }
+      case None =>
+        deps.map {
+          case (d, p, a) =>
+            (d, p, a, None)
+        }
+    }
+
+    val depArtifacts0 = depArtifacts1.filter {
+      case (_, pub, _, _) =>
+        pub.attributes != Attributes(Type.pom, Classifier.empty)
+    }
 
     val depArtifacts =
       if (includeSignatures) {
@@ -146,114 +179,205 @@ private[internal] object SbtUpdateReport {
 
         if (notFound.isEmpty)
           depArtifacts0.flatMap {
-            case (dep, attr, a) =>
-              Seq((dep, attr, a)) ++
-                // not too sure about the attributes here
-                a.extra.get("sig").toSeq.map((dep, Attributes(Type(s"${attr.`type`.value}.asc"), attr.classifier), _))
+            case (dep, pub, a, f) =>
+              val sigPub = pub
+                // not too sure about those
+                .withExt(Extension(pub.ext.value))
+                .withType(Type(pub.`type`.value))
+              Seq((dep, pub, a, f)) ++
+                a.extra.get("sig").toSeq.map((dep, sigPub, _, None))
           }
         else {
-          for ((_, _, a) <- notFound)
+          for ((_, _, a, _) <- notFound)
             log.error(s"No signature found for ${a.url}")
           sys.error(s"${notFound.length} signature(s) not found")
         }
       } else
         depArtifacts0
 
-    val groupedDepArtifacts = depArtifacts
-      .groupBy(_._1)
-      .mapValues(_.map { case (_, attr, a) => (attr, a) })
-      .iterator
-      .toMap
+    val groupedDepArtifacts = {
+      val m = depArtifacts.groupBy(_._1)
+      val fromLib = depArtifacts.map(_._1).distinct.map { dep =>
+        dep -> m.getOrElse(dep, Nil).map { case (_, pub, a, f) => (pub, a, f) }
+      }
+      val fromInterProj = interProjectDependencies
+        .filter(p => p.module != thisModule._1)
+        .map(p => Dependency(p.module, p.version) -> Nil)
+      fromLib ++ fromInterProj
+    }
 
-    val versions = res.dependencies.toVector.map { dep =>
-      dep.module -> dep.version
-    }.toMap
+    val versions = (Vector(Dependency(thisModule._1, thisModule._2)) ++ res.dependencies.toVector ++ res.rootDependencies.toVector)
+      .map { dep =>
+        dep.module -> dep.version
+      }.toMap
 
     def clean(dep: Dependency): Dependency =
-      dep.copy(configuration = Configuration.empty, exclusions = Set.empty, optional = false)
+      dep
+        .withConfiguration(Configuration.empty)
+        .withExclusions(Set.empty)
+        .withOptional(false)
 
-    val reverseDependencies = res.reverseDependencies
-      .toVector
-      .map { case (k, v) =>
-        clean(k) -> v.map(clean)
+    def lookupProject(mv: coursier.core.Resolution.ModuleVersion): Option[Project] =
+      res.projectCache.get(mv) match {
+        case Some((_, p)) => Some(p)
+        case _ =>
+          interProjectDependencies.find( p =>
+            mv == (p.module, p.version)
+          )
       }
-      .groupBy(_._1)
-      .mapValues(_.flatMap(_._2))
-      .toVector
+
+    val m = Dependency(thisModule._1, "")
+    val directReverseDependencies = res.rootDependencies.toSet.map(clean).map(_.withVersion(""))
+      .map(
+        dep => dep -> Vector(m)
+      )
       .toMap
 
-    groupedDepArtifacts.map {
+    val reverseDependencies = {
+      val transitiveReverseDependencies = res.reverseDependencies
+        .toVector
+        .map { case (k, v) =>
+          clean(k) -> v.map(clean)
+        }
+        .groupBy(_._1)
+        .mapValues(_.flatMap(_._2))
+
+      (transitiveReverseDependencies.toVector ++ directReverseDependencies.toVector)
+        .groupBy(_._1)
+        .mapValues(_.flatMap(_._2).toVector)
+        .toVector
+        .toMap
+    }
+
+    groupedDepArtifacts.toVector.map {
       case (dep, artifacts) =>
-        val (_, proj) = res.projectCache(dep.moduleVersion)
+        val proj = lookupProject(dep.moduleVersion).get
 
         // FIXME Likely flaky...
         val dependees = reverseDependencies
-          .getOrElse(clean(dep.copy(version = "")), Vector.empty)
-          .map { dependee0 =>
+          .getOrElse(clean(dep.withVersion("")), Vector.empty)
+          .flatMap { dependee0 =>
             val version = versions(dependee0.module)
-            val dependee = dependee0.copy(version = version)
-            val (_, dependeeProj) = res.projectCache(dependee.moduleVersion)
-            (dependee, dependeeProj)
+            val dependee = dependee0.withVersion(version)
+            lookupProject(dependee.moduleVersion) match {
+              case Some(dependeeProj) =>
+                Vector((dependee, ProjectInfo(
+                  dependeeProj.version,
+                  dependeeProj.configurations.keys.toVector.map(c => ConfigRef(c.value)),
+                  dependeeProj.properties)))
+              case _ =>
+                Vector.empty
+            }
           }
-
-        moduleReport(
+        val filesOpt = artifacts.map {
+          case (pub, a, fileOpt) =>
+            val fileOpt0 = fileOpt.orElse {
+              if (fullArtifactsOpt.isEmpty) artifactFileOpt(proj.module, proj.version, pub.attributes, a)
+              else None
+            }
+            (pub, a, fileOpt0)
+        }
+        moduleReport((
           dep,
           dependees,
           proj,
-          artifacts.map { case (attr, a) => (attr, a, artifactFileOpt(proj.module, proj.version, attr, a)) }
-        )
+          filesOpt,
+          classLoaders,
+        ))
     }
   }
 
   def apply(
+    thisModule: (Module, String),
     configDependencies: Map[Configuration, Seq[Dependency]],
-    resolutions: Map[Configuration, Resolution],
-    configs: Map[Configuration, Set[Configuration]],
+    resolutions: Seq[(Configuration, Resolution)],
+    interProjectDependencies: Vector[Project],
     classifiersOpt: Option[Seq[Classifier]],
     artifactFileOpt: (Module, String, Attributes, Artifact) => Option[File],
+    fullArtifactsOpt: Option[Map[(Dependency, Publication, Artifact), Option[File]]],
     log: Logger,
-    keepPomArtifact: Boolean = false,
-    includeSignatures: Boolean = false
+    includeSignatures: Boolean,
+    classpathOrder: Boolean,
+    missingOk: Boolean,
+    forceVersions: Map[Module, String],
+    classLoaders: Seq[ClassLoader],
   ): UpdateReport = {
 
-    val configReports = configs.map {
-      case (config, extends0) =>
-        val configDeps = extends0
-          .toSeq
-          .sortBy(_.value)
-          .flatMap(configDependencies.getOrElse(_, Nil))
-          .distinct
-        val subRes = resolutions(config).subset(configDeps)
+    val configReports = resolutions.map {
+      case (config, subRes) =>
 
         val reports = moduleReports(
+          thisModule,
           subRes,
+          interProjectDependencies,
           classifiersOpt,
           artifactFileOpt,
+          fullArtifactsOpt,
           log,
-          keepPomArtifact = keepPomArtifact,
-          includeSignatures = includeSignatures
+          includeSignatures = includeSignatures,
+          classpathOrder = classpathOrder,
+          missingOk = missingOk,
+          classLoaders = classLoaders,
         )
 
-        val reports0 =
-          if (subRes.rootDependencies.size == 1) {
+        val reports0 = subRes.rootDependencies match {
+          case Seq(dep) if subRes.projectCache.contains(dep.moduleVersion) =>
             // quick hack ensuring the module for the only root dependency
             // appears first in the update report, see https://github.com/coursier/coursier/issues/650
-            val dep = subRes.rootDependencies.head
             val (_, proj) = subRes.projectCache(dep.moduleVersion)
-            val mod = moduleId(dep, proj.version, proj.properties.toMap)
+            val mod = moduleId((dep, proj.version, infoProperties(proj).toMap))
             val (main, other) = reports.partition { r =>
               r.module.organization == mod.organization &&
-                r.module.name == mod.name &&
-                r.module.crossVersion == mod.crossVersion
+                  r.module.name == mod.name &&
+                  r.module.crossVersion == mod.crossVersion
             }
-            main.toVector ++ other.toVector
-          } else
-            reports.toVector
+            main ++ other
+          case _ => reports
+        }
+
+        val mainReportDetails = reports0.map { rep =>
+          OrganizationArtifactReport(rep.module.organization, rep.module.name, Vector(rep))
+        }
+
+        val evicted = for {
+          c <- coursier.graph.Conflict(subRes)
+          // ideally, forceVersions should be taken into account by coursier.core.Resolution itself, when
+          // it computes transitive dependencies. It only handles forced versions at a global level for now,
+          // rather than handing them for each dependency (where each dependency could have its own forced
+          // versions, and apply and pass them to its transitive dependencies, just like for exclusions today).
+          if !forceVersions.contains(c.module)
+          projOpt = subRes.projectCache.get((c.module, c.wantedVersion))
+            .orElse(subRes.projectCache.get((c.module, c.version)))
+          (_, proj) <- projOpt.toSeq
+        } yield {
+          val dep = Dependency(c.module, c.wantedVersion)
+          val dependee = Dependency(c.dependeeModule, c.dependeeVersion)
+          val dependeeProj = subRes.projectCache.get((c.dependeeModule, c.dependeeVersion)) match {
+              case Some((_, p)) =>
+                ProjectInfo(p.version, p.configurations.keys.toVector.map(c => ConfigRef(c.value)), p.properties)
+              case None =>
+                // should not happen
+                ProjectInfo(c.dependeeVersion, Vector.empty, Vector.empty)
+            }
+          val rep = moduleReport((dep, Seq((dependee, dependeeProj)), proj.withVersion(c.wantedVersion), Nil, classLoaders))
+            .withEvicted(true)
+            .withEvictedData(Some("version selection")) // ??? put latest-revision like sbt/ivy here?
+          OrganizationArtifactReport(c.module.organization.value, c.module.name.value, Vector(rep))
+        }
+
+        val details = (mainReportDetails ++ evicted)
+          .groupBy(r => (r.organization, r.name))
+          .toVector // order?
+          .map {
+            case ((org, name), l) =>
+              val modules = l.flatMap(_.modules)
+              OrganizationArtifactReport(org, name, modules)
+          }
 
         ConfigurationReport(
           ConfigRef(config.value),
           reports0,
-          Vector()
+          details
         )
     }
 
@@ -265,4 +389,5 @@ private[internal] object SbtUpdateReport {
     )
   }
 
+  private case class ProjectInfo(version: String, configs: Vector[ConfigRef], properties: Seq[(String, String)])
 }

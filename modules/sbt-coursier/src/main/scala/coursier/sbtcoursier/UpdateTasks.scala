@@ -1,10 +1,11 @@
 package coursier.sbtcoursier
 
 import coursier.core._
-import lmcoursier.definitions.ToCoursier
-import lmcoursier.internal.{SbtBootJars, SbtCoursierCache, UpdateParams, UpdateRun}
 import coursier.sbtcoursier.Keys._
 import coursier.sbtcoursiershared.SbtCoursierShared.autoImport._
+import lmcoursier.definitions.ToCoursier
+import lmcoursier.Inputs
+import lmcoursier.internal.{SbtBootJars, SbtCoursierCache, UpdateParams, UpdateRun}
 import sbt.Def
 import sbt.Keys._
 import sbt.librarymanagement.UpdateReport
@@ -12,7 +13,6 @@ import sbt.librarymanagement.UpdateReport
 object UpdateTasks {
 
   def updateTask(
-    shadedConfigOpt: Option[(String, Configuration)],
     withClassifiers: Boolean,
     sbtClassifiers: Boolean = false,
     includeSignatures: Boolean = false
@@ -29,18 +29,14 @@ object UpdateTasks {
         Def.task {
           val proj = coursierProject.value
           val publications = coursierPublications.value
-          proj.copy(publications = publications)
+          proj.withPublications(publications)
         }
 
     val resTask =
       if (withClassifiers && sbtClassifiers)
-        Def.task {
-          val cm = coursierSbtClassifiersModule.value
-          val classifiersRes = coursierSbtClassifiersResolution.value
-          Map(cm.configurations.map(c => Configuration(c.name)).toSet -> classifiersRes)
-        }
+        coursierSbtClassifiersResolutions
       else
-        Def.task(coursierResolutions.value)
+        coursierResolutions
 
     // we should be able to call .value on that one here, its conditions don't originate from other tasks
     val artifactFilesOrErrors0Task =
@@ -61,17 +57,7 @@ object UpdateTasks {
           cm.configurations.map(c => Configuration(c.name) -> Set(Configuration(c.name))).toMap
         }
       else
-        Def.task {
-          val configs0 = coursierConfigurations.value
-
-          shadedConfigOpt.fold(configs0) {
-            case (baseConfig, shadedConfig) =>
-              val baseConfig0 = Configuration(baseConfig)
-              (configs0 - shadedConfig) + (
-                baseConfig0 -> (configs0.getOrElse(baseConfig0, Set()) - shadedConfig)
-              )
-          }
-        }
+        coursierConfigurations
 
     val classifiersTask: sbt.Def.Initialize[sbt.Task[Option[Seq[Classifier]]]] =
       if (withClassifiers) {
@@ -102,16 +88,19 @@ object UpdateTasks {
       val log = streams.value.log
 
       val verbosityLevel = coursierVerbosity.value
-
-      val dependencies = ToCoursier.project(currentProjectTask.value).dependencies
+      val p = ToCoursier.project(currentProjectTask.value)
+      val dependencies = p.dependencies
       val res = resTask.value
 
       val key = SbtCoursierCache.ReportKey(
         dependencies,
         res,
         withClassifiers,
-        sbtClassifiers
+        sbtClassifiers,
+        includeSignatures
       )
+
+      val interProjectDependencies = coursierInterProjectDependencies.value.map(ToCoursier.project)
 
       SbtCoursierCache.default.reportOpt(key) match {
         case Some(report) =>
@@ -122,16 +111,30 @@ object UpdateTasks {
             val artifactFilesOrErrors0 = artifactFilesOrErrors0Task.value
             val classifiers = classifiersTask.value
             val configs = configsTask.value
+            val sv = scalaVersion.value
+            val sbv = scalaBinaryVersion.value
+            val forceVersions = Inputs.forceVersions(dependencyOverrides.value, sv, sbv)
+              .map {
+                case (m, v) =>
+                  (ToCoursier.module(m), v)
+              }
+              .toMap
 
             val params = UpdateParams(
-              shadedConfigOpt,
+              (p.module, p.version),
               artifactFilesOrErrors0,
+              None,
               classifiers,
               configs,
               dependencies,
+              forceVersions,
+              interProjectDependencies,
               res,
               includeSignatures,
-              sbtBootJarOverrides
+              sbtBootJarOverrides,
+              classpathOrder = true,
+              missingOk = sbtClassifiers,
+              classLoaders = Nil,
             )
 
             val rep = UpdateRun.update(params, verbosityLevel, log)

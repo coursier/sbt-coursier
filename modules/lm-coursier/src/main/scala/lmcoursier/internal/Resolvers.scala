@@ -1,10 +1,11 @@
 package lmcoursier.internal
 
-import coursier.ivy.IvyRepository
 import java.net.MalformedURLException
+import java.nio.file.Paths
 
 import coursier.cache.CacheUrl
 import coursier.core.{Authentication, Repository}
+import coursier.ivy.IvyRepository
 import coursier.maven.MavenRepository
 import org.apache.ivy.plugins.resolver.IBiblioResolver
 import sbt.librarymanagement.{Configuration => _, MavenRepository => _, _}
@@ -29,10 +30,11 @@ object Resolvers {
   private def mavenRepositoryOpt(
     root: String,
     log: Logger,
-    authentication: Option[Authentication]
+    authentication: Option[Authentication],
+    classLoaders: Seq[ClassLoader]
   ): Option[MavenRepository] =
     try {
-      CacheUrl.url(root) // ensure root is a URL whose protocol can be handled here
+      CacheUrl.url(root, classLoaders) // ensure root is a URL whose protocol can be handled here
       val root0 = if (root.endsWith("/")) root else root + "/"
       Some(
         MavenRepository(
@@ -52,15 +54,28 @@ object Resolvers {
         None
     }
 
+  // this handles whitespace in path
+  private def pathToUriString(path: String): String = {
+    val stopAtIdx = path.indexWhere(c => c == '[' || c == '$' || c == '(')
+    if (stopAtIdx > 0) {
+      val (pathPart, patternPart) = path.splitAt(stopAtIdx)
+      Paths.get(pathPart).toUri.toASCIIString + patternPart
+    } else if (stopAtIdx == 0)
+      "file://" + path
+    else
+      Paths.get(path).toUri.toASCIIString
+  }
+
   def repository(
     resolver: Resolver,
     ivyProperties: Map[String, String],
     log: Logger,
-    authentication: Option[Authentication]
+    authentication: Option[Authentication],
+    classLoaders: Seq[ClassLoader]
   ): Option[Repository] =
     resolver match {
       case r: sbt.librarymanagement.MavenRepository =>
-        mavenRepositoryOpt(r.root, log, authentication)
+        mavenRepositoryOpt(r.root, log, authentication, classLoaders)
 
       case r: FileRepository
         if r.patterns.ivyPatterns.lengthCompare(1) == 0 &&
@@ -72,8 +87,8 @@ object Resolvers {
           case None =>
 
             val repo = IvyRepository.parse(
-              "file://" + r.patterns.artifactPatterns.head,
-              metadataPatternOpt = Some("file://" + r.patterns.ivyPatterns.head),
+              pathToUriString(r.patterns.artifactPatterns.head),
+              metadataPatternOpt = Some(pathToUriString(r.patterns.ivyPatterns.head)),
               changing = Some(true),
               properties = ivyProperties,
               dropInfoAttributes = true,
@@ -90,18 +105,18 @@ object Resolvers {
             Some(repo)
 
           case Some(mavenCompatibleBase) =>
-            mavenRepositoryOpt("file://" + mavenCompatibleBase, log, authentication)
+            mavenRepositoryOpt(pathToUriString(mavenCompatibleBase), log, authentication, classLoaders)
         }
 
       case r: URLRepository if patternMatchGuard(r.patterns) =>
-        parseMavenCompatResolver(log, ivyProperties, authentication, r.patterns)
+        parseMavenCompatResolver(log, ivyProperties, authentication, r.patterns, classLoaders)
 
       case raw: RawRepository if raw.name == "inter-project" => // sbt.RawRepository.equals just compares names anyway
         None
 
       // Pattern Match resolver-type-specific RawRepositories
       case IBiblioRepository(p) =>
-        parseMavenCompatResolver(log, ivyProperties, authentication, p)
+        parseMavenCompatResolver(log, ivyProperties, authentication, p, classLoaders)
 
       case other =>
         log.warn(s"Unrecognized repository ${other.name}, ignoring it")
@@ -146,7 +161,8 @@ object Resolvers {
     log: Logger,
     ivyProperties: Map[String, String],
     authentication: Option[Authentication],
-    patterns: Patterns
+    patterns: Patterns,
+    classLoaders: Seq[ClassLoader],
   ): Option[Repository] = {
     val mavenCompatibleBaseOpt0 = mavenCompatibleBaseOpt(patterns)
 
@@ -172,7 +188,7 @@ object Resolvers {
         Some(repo)
 
       case Some(mavenCompatibleBase) =>
-        mavenRepositoryOpt(mavenCompatibleBase, log, authentication)
+        mavenRepositoryOpt(mavenCompatibleBase, log, authentication, classLoaders)
     }
   }
 }

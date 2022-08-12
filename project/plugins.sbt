@@ -1,16 +1,5 @@
+addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.5.10")
+addSbtPlugin("com.typesafe" % "sbt-mima-plugin" % "1.1.0")
+addSbtPlugin("io.get-coursier" % "sbt-shading" % "2.0.1")
 
-plugins_(
-  "com.geirsson"       % "sbt-ci-release"           % "1.2.1",
-  "io.get-coursier"    % "sbt-coursier"             % sbtCoursierVersion,
-  "com.typesafe"       % "sbt-mima-plugin"          % "0.3.0",
-  "com.jsuereth"       % "sbt-pgp"                  % "1.1.2",
-  "io.get-coursier"    % "sbt-shading"              % sbtCoursierVersion
-)
-
-libs ++= Seq(
-  "org.scala-sbt" %% "scripted-plugin" % sbtVersion.value
-)
-
-
-def plugins_(modules: ModuleID*) = modules.map(addSbtPlugin)
-def libs = libraryDependencies
+libraryDependencies += "org.scala-sbt" %% "scripted-plugin" % sbtVersion.value

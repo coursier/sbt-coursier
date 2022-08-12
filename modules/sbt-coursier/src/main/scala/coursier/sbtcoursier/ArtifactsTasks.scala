@@ -2,9 +2,9 @@ package coursier.sbtcoursier
 
 import java.io.File
 
-import coursier.Artifact
 import coursier.cache.FileCache
 import coursier.core._
+import coursier.util.Artifact
 import lmcoursier.internal.{ArtifactsParams, ArtifactsRun}
 import coursier.sbtcoursier.Keys._
 import coursier.sbtcoursiershared.InputsTasks.credentialsTask
@@ -24,7 +24,7 @@ object ArtifactsTasks {
 
     val resTask: sbt.Def.Initialize[sbt.Task[Seq[Resolution]]] =
       if (withClassifiers && sbtClassifiers)
-        Def.task(Seq(coursierSbtClassifiersResolution.value))
+        Def.task(coursierSbtClassifiersResolutions.value.values.toVector)
       else
         Def.task(coursierResolutions.value.values.toVector)
 
@@ -68,11 +68,14 @@ object ArtifactsTasks {
           .withChecksums(artifactsChecksums)
           .withTtl(ttl)
           .withCachePolicies(cachePolicies)
-          .withCredentials(credentials),
-        parallel = parallelDownloads
+          .withCredentials(credentials)
+          .withFollowHttpToHttpsRedirections(true),
+        parallel = parallelDownloads,
+        classpathOrder = true,
+        missingOk = sbtClassifiers
       )
 
-      val resOrError = ArtifactsRun.artifacts(
+      val resOrError = ArtifactsRun(
         params,
         verbosityLevel,
         log
@@ -82,7 +85,7 @@ object ArtifactsTasks {
         case Left(err) =>
           throw err
         case Right(res0) =>
-          res0
+          res0.artifacts.toMap
       }
     }
   }

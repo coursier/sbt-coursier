@@ -30,7 +30,7 @@ object CoursierPlugin extends AutoPlugin {
     val coursierParentProjectCache = Keys.coursierParentProjectCache
     val coursierResolutions = Keys.coursierResolutions
 
-    val coursierSbtClassifiersResolution = Keys.coursierSbtClassifiersResolution
+    val coursierSbtClassifiersResolutions = Keys.coursierSbtClassifiersResolutions
 
     val coursierDependencyTree = Keys.coursierDependencyTree
     val coursierDependencyInverseTree = Keys.coursierDependencyInverseTree
@@ -137,9 +137,7 @@ object CoursierPlugin extends AutoPlugin {
     }
   )
 
-  def coursierSettings(
-    shadedConfigOpt: Option[(String, Configuration)] = None
-  ): Seq[Setting[_]] = hackHack ++ Seq(
+  def coursierSettings: Seq[Setting[_]] = hackHack ++ Seq(
     coursierArtifacts := ArtifactsTasks.artifactsTask(withClassifiers = false).value,
     coursierSignedArtifacts := ArtifactsTasks.artifactsTask(withClassifiers = false, includeSignatures = true).value,
     coursierClassifiersArtifacts := ArtifactsTasks.artifactsTask(
@@ -149,41 +147,35 @@ object CoursierPlugin extends AutoPlugin {
       withClassifiers = true,
       sbtClassifiers = true
     ).value,
-    update := UpdateTasks.updateTask(
-      shadedConfigOpt,
-      withClassifiers = false
-    ).value,
-    updateClassifiers := UpdateTasks.updateTask(
-      shadedConfigOpt,
-      withClassifiers = true
-    ).value,
-    updateSbtClassifiers.in(Defaults.TaskGlobal) := UpdateTasks.updateTask(
-      shadedConfigOpt,
-      withClassifiers = true,
-      sbtClassifiers = true
-    ).value,
+    update := UpdateTasks.updateTask(withClassifiers = false).value,
+    updateClassifiers := UpdateTasks.updateTask(withClassifiers = true).value,
+    updateSbtClassifiers.in(Defaults.TaskGlobal) := UpdateTasks.updateTask(withClassifiers = true, sbtClassifiers = true).value,
     coursierConfigGraphs := InputsTasks.ivyGraphsTask.value,
     coursierSbtClassifiersModule := classifiersModule.in(updateSbtClassifiers).value,
-    coursierConfigurations := InputsTasks.coursierConfigurationsTask(None).value,
+    coursierConfigurations := InputsTasks.coursierConfigurationsTask.value,
     coursierParentProjectCache := InputsTasks.parentProjectCacheTask.value,
-    coursierResolutions := ResolutionTasks.resolutionsTask().value,
+    coursierResolutions := (Def.taskDyn {
+      val missingOk = updateConfiguration.value.missingOk
+      ResolutionTasks.resolutionsTask(missingOk = missingOk)
+    }).value,
     Keys.actualCoursierResolution := {
 
       val config = Configuration(Compile.name)
 
       coursierResolutions
         .value
-        .collectFirst {
-          case (configs, res) if configs(config) =>
-            res
-        }
-        .getOrElse {
+        .getOrElse(
+          config,
           sys.error(s"Resolution for configuration $config not found")
-        }
+        )
     },
-    coursierSbtClassifiersResolution := ResolutionTasks.resolutionsTask(
-      sbtClassifiers = true
-    ).value.head._2
+    coursierSbtClassifiersResolutions := (Def.taskDyn {
+      val missingOk = (updateConfiguration in updateSbtClassifiers).value.missingOk
+      ResolutionTasks.resolutionsTask(
+        sbtClassifiers = true,
+        missingOk = missingOk,
+      )
+    }).value
   )
 
   override lazy val buildSettings = super.buildSettings ++ Seq(
@@ -196,7 +188,7 @@ object CoursierPlugin extends AutoPlugin {
     coursierVerbosity := Settings.defaultVerbosityLevel(sLog.value)
   )
 
-  override lazy val projectSettings = coursierSettings() ++
+  override lazy val projectSettings = coursierSettings ++
     inConfig(Compile)(treeSettings) ++
     inConfig(Test)(treeSettings)
 

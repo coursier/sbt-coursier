@@ -4,21 +4,23 @@ import java.util.concurrent.ConcurrentHashMap
 
 import coursier.core._
 import sbt.librarymanagement.UpdateReport
+import coursier.cache.FileCache
+import coursier.util.Task
 
 // private[coursier]
 class SbtCoursierCache {
 
   import SbtCoursierCache._
 
-  private val resolutionsCache = new ConcurrentHashMap[ResolutionKey, Map[Set[Configuration], Resolution]]
+  private val resolutionsCache = new ConcurrentHashMap[ResolutionKey, Map[Configuration, Resolution]]
   // these may actually not need to be cached any more, now that the resolutions
   // are cached
   private val reportsCache = new ConcurrentHashMap[ReportKey, UpdateReport]
 
 
-  def resolutionOpt(key: ResolutionKey): Option[Map[Set[Configuration], Resolution]] =
+  def resolutionOpt(key: ResolutionKey): Option[Map[Configuration, Resolution]] =
     Option(resolutionsCache.get(key))
-  def putResolution(key: ResolutionKey, res: Map[Set[Configuration], Resolution]): Unit =
+  def putResolution(key: ResolutionKey, res: Map[Configuration, Resolution]): Unit =
     resolutionsCache.put(key, res)
 
   def reportOpt(key: ReportKey): Option[UpdateReport] =
@@ -41,17 +43,20 @@ object SbtCoursierCache {
 
   final case class ResolutionKey(
     dependencies: Seq[(Configuration, Dependency)],
-    repositories: Seq[Repository],
+    internalRepositories: Seq[Repository],
+    mainRepositories: Seq[Repository],
+    fallbackRepositories: Seq[Repository],
     params: ResolutionParams,
-    tmpCacheKey: Object, // temporary, until we can use https://github.com/coursier/coursier/pull/1090
+    cache: FileCache[Task],
     sbtClassifiers: Boolean
   )
 
   final case class ReportKey(
     dependencies: Seq[(Configuration, Dependency)],
-    resolution: Map[Set[Configuration], Resolution],
+    resolution: Map[Configuration, Resolution],
     withClassifiers: Boolean,
-    sbtClassifiers: Boolean
+    sbtClassifiers: Boolean,
+    includeSignatures: Boolean
   )
 
 

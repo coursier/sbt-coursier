@@ -1,131 +1,144 @@
-/**
- * This code is generated using [[http://www.scala-sbt.org/contraband/ sbt-contraband]].
- */
-
-// DO NOT EDIT MANUALLY
 package lmcoursier
-final class CoursierConfiguration private (
-  val log: Option[xsbti.Logger],
-  val resolvers: Vector[sbt.librarymanagement.Resolver],
-  val parallelDownloads: Int,
-  val maxIterations: Int,
-  val sbtScalaOrganization: Option[String],
-  val sbtScalaVersion: Option[String],
-  val sbtScalaJars: Vector[java.io.File],
-  val interProjectDependencies: Vector[lmcoursier.definitions.Project],
-  val excludeDependencies: Vector[(String, String)],
-  val fallbackDependencies: Vector[lmcoursier.FallbackDependency],
-  val autoScalaLibrary: Boolean,
-  val hasClassifiers: Boolean,
-  val classifiers: Vector[String],
-  val mavenProfiles: Vector[String],
-  val scalaOrganization: Option[String],
-  val scalaVersion: Option[String],
-  val authenticationByRepositoryId: Vector[(String, lmcoursier.definitions.Authentication)],
-  val credentials: Seq[lmcoursier.credentials.Credentials],
-  val logger: Option[lmcoursier.definitions.CacheLogger],
-  val cache: Option[java.io.File]) extends Serializable {
-  
-  private def this() = this(None, sbt.librarymanagement.Resolver.defaults, 6, 100, None, None, Vector.empty, Vector.empty, Vector.empty, Vector.empty, true, false, Vector.empty, Vector.empty, None, None, Vector.empty, Vector.empty, None, None)
-  
-  override def equals(o: Any): Boolean = o match {
-    case x: CoursierConfiguration => (this.log == x.log) && (this.resolvers == x.resolvers) && (this.parallelDownloads == x.parallelDownloads) && (this.maxIterations == x.maxIterations) && (this.sbtScalaOrganization == x.sbtScalaOrganization) && (this.sbtScalaVersion == x.sbtScalaVersion) && (this.sbtScalaJars == x.sbtScalaJars) && (this.interProjectDependencies == x.interProjectDependencies) && (this.excludeDependencies == x.excludeDependencies) && (this.fallbackDependencies == x.fallbackDependencies) && (this.autoScalaLibrary == x.autoScalaLibrary) && (this.hasClassifiers == x.hasClassifiers) && (this.classifiers == x.classifiers) && (this.mavenProfiles == x.mavenProfiles) && (this.scalaOrganization == x.scalaOrganization) && (this.scalaVersion == x.scalaVersion) && (this.authenticationByRepositoryId == x.authenticationByRepositoryId) && (this.credentials == x.credentials) && (this.logger == x.logger) && (this.cache == x.cache)
-    case _ => false
-  }
-  override def hashCode: Int = {
-    37 * (37 * (37 * (37 * (37 * (37 * (37 * (37 * (37 * (37 * (37 * (37 * (37 * (37 * (37 * (37 * (37 * (37 * (37 * (37 * (37 * (17 + "lmcoursier.CoursierConfiguration".##) + log.##) + resolvers.##) + parallelDownloads.##) + maxIterations.##) + sbtScalaOrganization.##) + sbtScalaVersion.##) + sbtScalaJars.##) + interProjectDependencies.##) + excludeDependencies.##) + fallbackDependencies.##) + autoScalaLibrary.##) + hasClassifiers.##) + classifiers.##) + mavenProfiles.##) + scalaOrganization.##) + scalaVersion.##) + authenticationByRepositoryId.##) + credentials.##) + logger.##) + cache.##)
-  }
-  override def toString: String = {
-    "CoursierConfiguration(" + log + ", " + resolvers + ", " + parallelDownloads + ", " + maxIterations + ", " + sbtScalaOrganization + ", " + sbtScalaVersion + ", " + sbtScalaJars + ", " + interProjectDependencies + ", " + excludeDependencies + ", " + fallbackDependencies + ", " + autoScalaLibrary + ", " + hasClassifiers + ", " + classifiers + ", " + mavenProfiles + ", " + scalaOrganization + ", " + scalaVersion + ", " + authenticationByRepositoryId + ", " + credentials + ", " + logger + ", " + cache + ")"
-  }
-  private[this] def copy(log: Option[xsbti.Logger] = log, resolvers: Vector[sbt.librarymanagement.Resolver] = resolvers, parallelDownloads: Int = parallelDownloads, maxIterations: Int = maxIterations, sbtScalaOrganization: Option[String] = sbtScalaOrganization, sbtScalaVersion: Option[String] = sbtScalaVersion, sbtScalaJars: Vector[java.io.File] = sbtScalaJars, interProjectDependencies: Vector[lmcoursier.definitions.Project] = interProjectDependencies, excludeDependencies: Vector[(String, String)] = excludeDependencies, fallbackDependencies: Vector[lmcoursier.FallbackDependency] = fallbackDependencies, autoScalaLibrary: Boolean = autoScalaLibrary, hasClassifiers: Boolean = hasClassifiers, classifiers: Vector[String] = classifiers, mavenProfiles: Vector[String] = mavenProfiles, scalaOrganization: Option[String] = scalaOrganization, scalaVersion: Option[String] = scalaVersion, authenticationByRepositoryId: Vector[(String, lmcoursier.definitions.Authentication)] = authenticationByRepositoryId, credentials: Seq[lmcoursier.credentials.Credentials] = credentials, logger: Option[lmcoursier.definitions.CacheLogger] = logger, cache: Option[java.io.File] = cache): CoursierConfiguration = {
-    new CoursierConfiguration(log, resolvers, parallelDownloads, maxIterations, sbtScalaOrganization, sbtScalaVersion, sbtScalaJars, interProjectDependencies, excludeDependencies, fallbackDependencies, autoScalaLibrary, hasClassifiers, classifiers, mavenProfiles, scalaOrganization, scalaVersion, authenticationByRepositoryId, credentials, logger, cache)
-  }
-  def withLog(log: Option[xsbti.Logger]): CoursierConfiguration = {
-    copy(log = log)
-  }
-  def withLog(log: xsbti.Logger): CoursierConfiguration = {
-    copy(log = Option(log))
-  }
-  def withResolvers(resolvers: Vector[sbt.librarymanagement.Resolver]): CoursierConfiguration = {
-    copy(resolvers = resolvers)
-  }
-  def withParallelDownloads(parallelDownloads: Int): CoursierConfiguration = {
-    copy(parallelDownloads = parallelDownloads)
-  }
-  def withMaxIterations(maxIterations: Int): CoursierConfiguration = {
-    copy(maxIterations = maxIterations)
-  }
-  def withSbtScalaOrganization(sbtScalaOrganization: Option[String]): CoursierConfiguration = {
-    copy(sbtScalaOrganization = sbtScalaOrganization)
-  }
-  def withSbtScalaOrganization(sbtScalaOrganization: String): CoursierConfiguration = {
-    copy(sbtScalaOrganization = Option(sbtScalaOrganization))
-  }
-  def withSbtScalaVersion(sbtScalaVersion: Option[String]): CoursierConfiguration = {
-    copy(sbtScalaVersion = sbtScalaVersion)
-  }
-  def withSbtScalaVersion(sbtScalaVersion: String): CoursierConfiguration = {
-    copy(sbtScalaVersion = Option(sbtScalaVersion))
-  }
-  def withSbtScalaJars(sbtScalaJars: Vector[java.io.File]): CoursierConfiguration = {
-    copy(sbtScalaJars = sbtScalaJars)
-  }
-  def withInterProjectDependencies(interProjectDependencies: Vector[lmcoursier.definitions.Project]): CoursierConfiguration = {
-    copy(interProjectDependencies = interProjectDependencies)
-  }
-  def withExcludeDependencies(excludeDependencies: Vector[(String, String)]): CoursierConfiguration = {
-    copy(excludeDependencies = excludeDependencies)
-  }
-  def withFallbackDependencies(fallbackDependencies: Vector[lmcoursier.FallbackDependency]): CoursierConfiguration = {
-    copy(fallbackDependencies = fallbackDependencies)
-  }
-  def withAutoScalaLibrary(autoScalaLibrary: Boolean): CoursierConfiguration = {
-    copy(autoScalaLibrary = autoScalaLibrary)
-  }
-  def withHasClassifiers(hasClassifiers: Boolean): CoursierConfiguration = {
-    copy(hasClassifiers = hasClassifiers)
-  }
-  def withClassifiers(classifiers: Vector[String]): CoursierConfiguration = {
-    copy(classifiers = classifiers)
-  }
-  def withMavenProfiles(mavenProfiles: Vector[String]): CoursierConfiguration = {
-    copy(mavenProfiles = mavenProfiles)
-  }
-  def withScalaOrganization(scalaOrganization: Option[String]): CoursierConfiguration = {
-    copy(scalaOrganization = scalaOrganization)
-  }
-  def withScalaOrganization(scalaOrganization: String): CoursierConfiguration = {
-    copy(scalaOrganization = Option(scalaOrganization))
-  }
-  def withScalaVersion(scalaVersion: Option[String]): CoursierConfiguration = {
-    copy(scalaVersion = scalaVersion)
-  }
-  def withScalaVersion(scalaVersion: String): CoursierConfiguration = {
-    copy(scalaVersion = Option(scalaVersion))
-  }
-  def withAuthenticationByRepositoryId(authenticationByRepositoryId: Vector[(String, lmcoursier.definitions.Authentication)]): CoursierConfiguration = {
-    copy(authenticationByRepositoryId = authenticationByRepositoryId)
-  }
-  def withCredentials(credentials: Seq[lmcoursier.credentials.Credentials]): CoursierConfiguration = {
-    copy(credentials = credentials)
-  }
-  def withLogger(logger: Option[lmcoursier.definitions.CacheLogger]): CoursierConfiguration = {
-    copy(logger = logger)
-  }
-  def withLogger(logger: lmcoursier.definitions.CacheLogger): CoursierConfiguration = {
-    copy(logger = Option(logger))
-  }
-  def withCache(cache: Option[java.io.File]): CoursierConfiguration = {
-    copy(cache = cache)
-  }
-  def withCache(cache: java.io.File): CoursierConfiguration = {
-    copy(cache = Option(cache))
-  }
+
+import java.io.File
+
+import dataclass.data
+import coursier.cache.CacheDefaults
+import lmcoursier.credentials.Credentials
+import lmcoursier.definitions.{Authentication, CacheLogger, CachePolicy, FromCoursier, Module, ModuleMatchers, Project, Reconciliation, Strict}
+import sbt.librarymanagement.{Resolver, UpdateConfiguration, ModuleID, CrossVersion, ModuleInfo, ModuleDescriptorConfiguration}
+import xsbti.Logger
+
+import scala.concurrent.duration.Duration
+import java.net.URL
+import java.net.URLClassLoader
+
+@data class CoursierConfiguration(
+  log: Option[Logger] = None,
+  resolvers: Vector[Resolver] = Resolver.defaults,
+  parallelDownloads: Int = 6,
+  maxIterations: Int = 100,
+  sbtScalaOrganization: Option[String] = None,
+  sbtScalaVersion: Option[String] = None,
+  sbtScalaJars: Vector[File] = Vector.empty,
+  interProjectDependencies: Vector[Project] = Vector.empty,
+  excludeDependencies: Vector[(String, String)] = Vector.empty,
+  fallbackDependencies: Vector[FallbackDependency] = Vector.empty,
+  autoScalaLibrary: Boolean = true,
+  hasClassifiers: Boolean = false,
+  classifiers: Vector[String] = Vector.empty,
+  mavenProfiles: Vector[String] = Vector.empty,
+  scalaOrganization: Option[String] = None,
+  scalaVersion: Option[String] = None,
+  authenticationByRepositoryId: Vector[(String, Authentication)] = Vector.empty,
+  credentials: Seq[Credentials] = Vector.empty,
+  logger: Option[CacheLogger] = None,
+  cache: Option[File] = None,
+  @since
+  ivyHome: Option[File] = None,
+  @since
+  followHttpToHttpsRedirections: Option[Boolean] = None,
+  @since
+  strict: Option[Strict] = None,
+  extraProjects: Vector[Project] = Vector.empty,
+  forceVersions: Vector[(Module, String)] = Vector.empty,
+  @since
+  reconciliation: Vector[(ModuleMatchers, Reconciliation)] = Vector.empty,
+  @since
+  classpathOrder: Boolean = true,
+  @since
+  verbosityLevel: Int = 0,
+  ttl: Option[Duration] = CacheDefaults.ttl,
+  checksums: Vector[Option[String]] = CacheDefaults.checksums.toVector,
+  cachePolicies: Vector[CachePolicy] = CacheDefaults.cachePolicies.toVector.map(FromCoursier.cachePolicy),
+  @since
+  missingOk: Boolean = false,
+  @since
+  sbtClassifiers: Boolean = false,
+  @since
+  providedInCompile: Boolean = false, // unused, kept for binary compatibility
+  @since
+  protocolHandlerDependencies: Seq[ModuleID] = Vector.empty,
+) {
+
+  def withLog(log: Logger): CoursierConfiguration =
+    withLog(Option(log))
+  def withSbtScalaOrganization(sbtScalaOrganization: String): CoursierConfiguration =
+    withSbtScalaOrganization(Option(sbtScalaOrganization))
+  def withSbtScalaVersion(sbtScalaVersion: String): CoursierConfiguration =
+    withSbtScalaVersion(Option(sbtScalaVersion))
+  def withScalaOrganization(scalaOrganization: String): CoursierConfiguration =
+    withScalaOrganization(Option(scalaOrganization))
+  def withScalaVersion(scalaVersion: String): CoursierConfiguration =
+    withScalaVersion(Option(scalaVersion))
+  def withLogger(logger: CacheLogger): CoursierConfiguration =
+    withLogger(Option(logger))
+  def withCache(cache: File): CoursierConfiguration =
+    withCache(Option(cache))
+  def withIvyHome(ivyHome: File): CoursierConfiguration =
+    withIvyHome(Option(ivyHome))
+  def withFollowHttpToHttpsRedirections(followHttpToHttpsRedirections: Boolean): CoursierConfiguration =
+    withFollowHttpToHttpsRedirections(Some(followHttpToHttpsRedirections))
+  def withFollowHttpToHttpsRedirections(): CoursierConfiguration =
+    withFollowHttpToHttpsRedirections(Some(true))
+  def withStrict(strict: Strict): CoursierConfiguration =
+    withStrict(Some(strict))
+  def withTtl(ttl: Duration): CoursierConfiguration =
+    withTtl(Some(ttl))
+  def addRepositoryAuthentication(repositoryId: String, authentication: Authentication): CoursierConfiguration =
+    withAuthenticationByRepositoryId(authenticationByRepositoryId :+ (repositoryId, authentication))
+
+  def withUpdateConfiguration(conf: UpdateConfiguration): CoursierConfiguration =
+    withMissingOk(conf.missingOk)
 }
+
 object CoursierConfiguration {
-  
-  def apply(): CoursierConfiguration = new CoursierConfiguration()
-  def apply(log: Option[xsbti.Logger], resolvers: Vector[sbt.librarymanagement.Resolver], parallelDownloads: Int, maxIterations: Int, sbtScalaOrganization: Option[String], sbtScalaVersion: Option[String], sbtScalaJars: Vector[java.io.File], interProjectDependencies: Vector[lmcoursier.definitions.Project], excludeDependencies: Vector[(String, String)], fallbackDependencies: Vector[lmcoursier.FallbackDependency], autoScalaLibrary: Boolean, hasClassifiers: Boolean, classifiers: Vector[String], mavenProfiles: Vector[String], scalaOrganization: Option[String], scalaVersion: Option[String], authenticationByRepositoryId: Vector[(String, lmcoursier.definitions.Authentication)], credentials: Seq[lmcoursier.credentials.Credentials], logger: Option[lmcoursier.definitions.CacheLogger], cache: Option[java.io.File]): CoursierConfiguration = new CoursierConfiguration(log, resolvers, parallelDownloads, maxIterations, sbtScalaOrganization, sbtScalaVersion, sbtScalaJars, interProjectDependencies, excludeDependencies, fallbackDependencies, autoScalaLibrary, hasClassifiers, classifiers, mavenProfiles, scalaOrganization, scalaVersion, authenticationByRepositoryId, credentials, logger, cache)
-  def apply(log: xsbti.Logger, resolvers: Vector[sbt.librarymanagement.Resolver], parallelDownloads: Int, maxIterations: Int, sbtScalaOrganization: String, sbtScalaVersion: String, sbtScalaJars: Vector[java.io.File], interProjectDependencies: Vector[lmcoursier.definitions.Project], excludeDependencies: Vector[(String, String)], fallbackDependencies: Vector[lmcoursier.FallbackDependency], autoScalaLibrary: Boolean, hasClassifiers: Boolean, classifiers: Vector[String], mavenProfiles: Vector[String], scalaOrganization: String, scalaVersion: String, authenticationByRepositoryId: Vector[(String, lmcoursier.definitions.Authentication)], credentials: Seq[lmcoursier.credentials.Credentials], logger: lmcoursier.definitions.CacheLogger, cache: java.io.File): CoursierConfiguration = new CoursierConfiguration(Option(log), resolvers, parallelDownloads, maxIterations, Option(sbtScalaOrganization), Option(sbtScalaVersion), sbtScalaJars, interProjectDependencies, excludeDependencies, fallbackDependencies, autoScalaLibrary, hasClassifiers, classifiers, mavenProfiles, Option(scalaOrganization), Option(scalaVersion), authenticationByRepositoryId, credentials, Option(logger), Option(cache))
+
+  @deprecated("Legacy cache location support was dropped, this method does nothing.", "2.0.0-RC6-10")
+  def checkLegacyCache(): Unit = ()
+
+  def apply(
+    log: Logger,
+    resolvers: Vector[Resolver],
+    parallelDownloads: Int,
+    maxIterations: Int,
+    sbtScalaOrganization: String,
+    sbtScalaVersion: String,
+    sbtScalaJars: Vector[File],
+    interProjectDependencies: Vector[Project],
+    excludeDependencies: Vector[(String, String)],
+    fallbackDependencies: Vector[FallbackDependency],
+    autoScalaLibrary: Boolean,
+    hasClassifiers: Boolean,
+    classifiers: Vector[String],
+    mavenProfiles: Vector[String],
+    scalaOrganization: String,
+    scalaVersion: String,
+    authenticationByRepositoryId: Vector[(String, Authentication)],
+    credentials: Seq[Credentials],
+    logger: CacheLogger,
+    cache: File
+  ): CoursierConfiguration =
+    CoursierConfiguration(
+      Option(log),
+      resolvers,
+      parallelDownloads,
+      maxIterations,
+      Option(sbtScalaOrganization),
+      Option(sbtScalaVersion),
+      sbtScalaJars,
+      interProjectDependencies,
+      excludeDependencies,
+      fallbackDependencies,
+      autoScalaLibrary,
+      hasClassifiers,
+      classifiers,
+      mavenProfiles,
+      Option(scalaOrganization),
+      Option(scalaVersion),
+      authenticationByRepositoryId,
+      credentials,
+      Option(logger),
+      Option(cache)
+    ) /* no need to touch this 'apply'; @data above is doing the hard work */
 }

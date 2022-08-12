@@ -1,6 +1,7 @@
 package lmcoursier.definitions
+import dataclass.data
 
-final case class Module(
+@data class Module(
   organization: Organization,
   name: ModuleName,
   attributes: Map[String, String]

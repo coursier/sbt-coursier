@@ -1,5 +1,6 @@
 package lmcoursier.internal
 
+import coursier.cache.loggers.RefreshLogger
 import coursier.core.Resolution.ModuleVersion
 import coursier.core._
 import coursier.util.Print
@@ -42,12 +43,12 @@ object UpdateRun {
     allDependenciesByConfig(res, depsByConfig, configs)
       .flatMap {
         case (config, deps) =>
-          deps.map(dep => dep.copy(configuration = config --> dep.configuration))
+          deps.map(dep => dep.withConfiguration(config --> dep.configuration))
       }
-      .groupBy(_.copy(configuration = Configuration.empty))
+      .groupBy(_.withConfiguration(Configuration.empty))
       .map {
         case (dep, l) =>
-          dep.copy(configuration = Configuration.join(l.map(_.configuration).toSeq: _*))
+          dep.withConfiguration(Configuration.join(l.map(_.configuration).toSeq: _*))
       }
       .toSet
 
@@ -55,26 +56,12 @@ object UpdateRun {
     params: UpdateParams,
     verbosityLevel: Int,
     log: Logger
-  ): UpdateReport = Lock.lock.synchronized {
-
-    val configResolutions = params.res.flatMap {
-      case (configs, r) =>
-        configs.iterator.map((_, r))
-    }
-
-    val depsByConfig = grouped(params.dependencies)(
-      config =>
-        params.shadedConfigOpt match {
-          case Some((baseConfig, `config`)) =>
-            Configuration(baseConfig)
-          case _ =>
-            config
-        }
-    )
+  ): UpdateReport = Lock.maybeSynchronized(needsLock = !RefreshLogger.defaultFallbackMode) {
+    val depsByConfig = grouped(params.dependencies)
 
     if (verbosityLevel >= 2) {
       val finalDeps = dependenciesWithConfig(
-        configResolutions,
+        params.res,
         depsByConfig,
         params.configs
       )
@@ -85,19 +72,25 @@ object UpdateRun {
     }
 
     SbtUpdateReport(
+      params.thisModule,
       depsByConfig,
-      configResolutions,
-      params.configs,
+      params.res.toVector.sortBy(_._1.value), // FIXME Order by config topologically?
+      params.interProjectDependencies.toVector,
       params.classifiers,
       params.artifactFileOpt,
+      params.fullArtifacts,
       log,
-      includeSignatures = params.includeSignatures
+      includeSignatures = params.includeSignatures,
+      classpathOrder = params.classpathOrder,
+      missingOk = params.missingOk,
+      params.forceVersions,
+      params.classLoaders,
     )
   }
 
-  private def grouped[K, V](map: Seq[(K, V)])(mapKey: K => K): Map[K, Seq[V]] =
+  private def grouped[K, V](map: Seq[(K, V)]): Map[K, Seq[V]] =
     map
-      .groupBy(t => mapKey(t._1))
+      .groupBy(_._1)
       .mapValues(_.map(_._2))
       .iterator
       .toMap

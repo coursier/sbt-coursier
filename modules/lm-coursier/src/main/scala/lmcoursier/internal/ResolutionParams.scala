@@ -5,15 +5,18 @@ import java.io.File
 import coursier.cache.{CacheLogger, FileCache}
 import coursier.ProjectCache
 import coursier.core._
+import coursier.params.rule.Strict
 import lmcoursier.FallbackDependency
 import lmcoursier.definitions.ToCoursier
-import coursier.util.{InMemoryRepository, Task}
+import coursier.util.Task
+
+import scala.collection.mutable
 
 // private[coursier]
 final case class ResolutionParams(
   dependencies: Seq[(Configuration, Dependency)],
   fallbackDependencies: Seq[FallbackDependency],
-  configGraphs: Seq[Set[Configuration]],
+  orderedConfigs: Seq[(Configuration, Seq[Configuration])],
   autoScalaLibOpt: Option[(Organization, String)],
   mainRepositories: Seq[Repository],
   parentProjectCache: ProjectCache,
@@ -24,45 +27,58 @@ final case class ResolutionParams(
   loggerOpt: Option[CacheLogger],
   cache: coursier.cache.FileCache[Task],
   parallel: Int,
-  params: coursier.params.ResolutionParams
+  params: coursier.params.ResolutionParams,
+  strictOpt: Option[Strict],
+  missingOk: Boolean,
 ) {
+
+  lazy val allConfigExtends: Map[Configuration, Set[Configuration]] = {
+    val map = new mutable.HashMap[Configuration, Set[Configuration]]
+    for ((config, extends0) <- orderedConfigs) {
+      val allExtends = extends0
+        .iterator
+        // the else of the getOrElse shouldn't be hit (because of the ordering of the configurations)
+        .foldLeft(Set(config))((acc, ext) => acc ++ map.getOrElse(ext, Set(ext)))
+      map += config -> allExtends
+    }
+    map.toMap
+  }
 
   val fallbackDependenciesRepositories =
     if (fallbackDependencies.isEmpty)
       Nil
     else {
-      val map = fallbackDependencies.map {
-        case FallbackDependency(mod, ver, url, changing) =>
-          (ToCoursier.module(mod), ver) -> ((url, changing))
-      }.toMap
+      val map = fallbackDependencies
+        .map { dep =>
+          (ToCoursier.module(dep.module), dep.version) -> ((dep.url, dep.changing))
+        }
+        .toMap
 
       Seq(
-        InMemoryRepository(map)
+        TemporaryInMemoryRepository(map, cache)
       )
     }
 
-  val repositories =
-    internalRepositories ++
-      mainRepositories ++
-      fallbackDependenciesRepositories
-
-  lazy val resolutionKey = SbtCoursierCache.ResolutionKey(
-    dependencies,
-    repositories,
-    copy(
-      parentProjectCache = Map.empty,
-      loggerOpt = None,
-      cache = null, // temporary, until we can use https://github.com/coursier/coursier/pull/1090
-      parallel = 0
-    ),
-    ResolutionParams.cacheKey {
-      cache
-        .withPool(null)
-        .withLogger(null)
-        .withSync[Task](null)
-    },
-    sbtClassifiers
-  )
+  lazy val resolutionKey = {
+    val cleanCache = cache
+      .withPool(null)
+      .withLogger(null)
+      .withSync(null)
+    SbtCoursierCache.ResolutionKey(
+      dependencies,
+      internalRepositories,
+      mainRepositories,
+      fallbackDependenciesRepositories,
+      copy(
+        parentProjectCache = Map.empty,
+        loggerOpt = None,
+        parallel = 0,
+        cache = cleanCache
+      ),
+      cleanCache,
+      missingOk
+    )
+  }
 
   override lazy val hashCode =
     ResolutionParams.unapply(this).get.##
@@ -72,24 +88,12 @@ final case class ResolutionParams(
 // private[coursier]
 object ResolutionParams {
 
-  private lazy val m = {
-    val cls = classOf[FileCache[Task]]
-    //cls.getDeclaredMethods.foreach(println)
-    val m = cls.getDeclaredMethod("params")
-    m.setAccessible(true)
-    m
-  }
+  def defaultIvyProperties(ivyHomeOpt: Option[File]): Map[String, String] = {
 
-  // temporary, until we can use https://github.com/coursier/coursier/pull/1090
-  private def cacheKey(cache: FileCache[Task]): Object =
-    m.invoke(cache)
-
-  def defaultIvyProperties(): Map[String, String] = {
-
-    val ivyHome = sys.props.getOrElse(
-      "ivy.home",
-      new File(sys.props("user.home")).toURI.getPath + ".ivy2"
-    )
+    val ivyHome = sys.props
+      .get("ivy.home")
+      .orElse(ivyHomeOpt.map(_.getAbsoluteFile.toURI.getPath))
+      .getOrElse(new File(sys.props("user.home")).toURI.getPath + ".ivy2")
 
     val sbtIvyHome = sys.props.getOrElse(
       "sbt.ivy.home",

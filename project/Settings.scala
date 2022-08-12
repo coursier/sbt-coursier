@@ -5,14 +5,19 @@ import sbt._
 import sbt.Keys._
 import sbt.ScriptedPlugin.autoImport.{scriptedBufferLog, scriptedLaunchOpts}
 
-import com.typesafe.sbt.pgp._
-import coursier.ShadingPlugin.autoImport.{Shading, shadingNamespace}
+import com.jsuereth.sbtpgp._
 
 object Settings {
 
-  def scala212 = "2.12.7"
+  def scala212 = "2.12.16"
+  def scala213 = "2.13.8"
 
-  def sbt10Version = "1.0.2"
+  def targetSbtVersion = "1.2.8"
+
+  private lazy val isAtLeastScala213 = Def.setting {
+    import Ordering.Implicits._
+    CrossVersion.partialVersion(scalaVersion.value).exists(_ >= (2, 13))
+  }
 
   lazy val shared = Seq(
     resolvers += Resolver.sonatypeRepo("releases"),
@@ -23,7 +28,15 @@ object Settings {
       "-deprecation",
       "-language:higherKinds",
       "-language:implicitConversions"
-    )
+    ),
+    libraryDependencies ++= {
+      if (isAtLeastScala213.value) Nil
+      else Seq(compilerPlugin("org.scalamacros" % s"paradise" % "2.1.1" cross CrossVersion.full))
+    },
+    scalacOptions ++= {
+      if (isAtLeastScala213.value) Seq("-Ymacro-annotations")
+      else Nil
+    }
   ) ++ {
     val prop = sys.props.getOrElse("publish.javadoc", "").toLowerCase(Locale.ROOT)
     if (prop == "0" || prop == "false")
@@ -38,6 +51,8 @@ object Settings {
   lazy val plugin =
     shared ++
     Seq(
+      // https://github.com/sbt/sbt/issues/5049#issuecomment-528960415
+      dependencyOverrides := "org.scala-sbt" % "sbt" % targetSbtVersion :: Nil,
       scriptedLaunchOpts ++= Seq(
         "-Xmx1024M",
         "-Dplugin.name=" + name.value,
@@ -47,21 +62,8 @@ object Settings {
       ),
       scriptedBufferLog := false,
       sbtPlugin := true,
-      sbtVersion.in(pluginCrossBuild) := sbt10Version
+      sbtVersion.in(pluginCrossBuild) := targetSbtVersion
     )
-
-  lazy val shading =
-    inConfig(Shading)(PgpSettings.projectSettings) ++
-       // Why does this have to be repeated here?
-       // Can't figure out why configuration gets lost without this in particular...
-      coursier.ShadingPlugin.projectSettings ++
-      Seq(
-        shadingNamespace := "coursier.shaded",
-        publish := publish.in(Shading).value,
-        publishLocal := publishLocal.in(Shading).value,
-        PgpKeys.publishSigned := PgpKeys.publishSigned.in(Shading).value,
-        PgpKeys.publishLocalSigned := PgpKeys.publishLocalSigned.in(Shading).value
-      )
 
   lazy val generatePropertyFile =
     resourceGenerators.in(Compile) += Def.task {
@@ -86,5 +88,9 @@ object Settings {
 
       Seq(f)
     }
+
+  lazy val dontPublish = Seq(
+    publish := {}
+  )
 
 }

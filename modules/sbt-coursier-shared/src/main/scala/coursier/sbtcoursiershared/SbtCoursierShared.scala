@@ -9,9 +9,12 @@ import lmcoursier.definitions.{CacheLogger, Configuration, Project, Publication}
 import lmcoursier.internal.SbtCoursierCache
 import sbt.{AutoPlugin, Classpaths, Compile, Setting, TaskKey, Test, settingKey, taskKey}
 import sbt.Keys._
-import sbt.librarymanagement.{Resolver, URLRepository}
+import sbt.librarymanagement.DependencyBuilders.OrganizationArtifactName
+import sbt.librarymanagement.{ModuleID, Resolver, URLRepository}
 
 object SbtCoursierShared extends AutoPlugin {
+
+  lmcoursier.CoursierConfiguration.checkLegacyCache()
 
   override def trigger = allRequirements
 
@@ -19,8 +22,10 @@ object SbtCoursierShared extends AutoPlugin {
 
   object autoImport {
     val coursierGenerateIvyXml = settingKey[Boolean]("")
+    val coursierWriteIvyXml = taskKey[File]("")
     val coursierProject = TaskKey[Project]("coursier-project")
     val coursierInterProjectDependencies = TaskKey[Seq[Project]]("coursier-inter-project-dependencies", "Projects the current project depends on, possibly transitively")
+    val coursierExtraProjects = TaskKey[Seq[Project]]("coursier-extra-projects", "")
     val coursierPublications = TaskKey[Seq[(Configuration, Publication)]]("coursier-publications")
 
     val coursierKeepPreloaded = settingKey[Boolean]("Whether to take into account sbt preloaded repositories or not")
@@ -34,10 +39,13 @@ object SbtCoursierShared extends AutoPlugin {
     val coursierFallbackDependencies = taskKey[Seq[FallbackDependency]]("")
 
     val mavenProfiles = settingKey[Set[String]]("")
+    val versionReconciliation = taskKey[Seq[ModuleID]]("")
+
+    private[coursier] val actualCoursierCredentials = TaskKey[Map[String, LegacyCredentials]]("coursierCredentials", "")
 
     val coursierUseSbtCredentials = settingKey[Boolean]("")
     @deprecated("Use coursierExtraCredentials rather than coursierCredentials", "1.1.0-M14")
-    val coursierCredentials = taskKey[Map[String, LegacyCredentials]]("")
+    val coursierCredentials = actualCoursierCredentials
     val coursierExtraCredentials = taskKey[Seq[Credentials]]("")
 
     val coursierLogger = taskKey[Option[CacheLogger]]("")
@@ -55,7 +63,7 @@ object SbtCoursierShared extends AutoPlugin {
   override def globalSettings: Seq[Setting[_]] =
     Seq(
       coursierUseSbtCredentials := true,
-      coursierCredentials := Map.empty,
+      actualCoursierCredentials := Map.empty,
       coursierExtraCredentials := Nil
     )
 
@@ -77,9 +85,15 @@ object SbtCoursierShared extends AutoPlugin {
         val noWarningPlz = clean.value
         SbtCoursierCache.default.clear()
       },
+      onUnload := {
+        SbtCoursierCache.default.clear()
+        onUnload.value
+      },
       coursierGenerateIvyXml := true,
+      coursierWriteIvyXml := IvyXmlGeneration.writeIvyXml.value,
       coursierProject := InputsTasks.coursierProjectTask.value,
-      coursierInterProjectDependencies := InputsTasks.coursierInterProjectDependenciesTask.value
+      coursierInterProjectDependencies := InputsTasks.coursierInterProjectDependenciesTask.value,
+      coursierExtraProjects := InputsTasks.coursierExtraProjectsTask.value
     ) ++ {
       if (pubSettings)
         Seq(
@@ -164,10 +178,11 @@ object SbtCoursierShared extends AutoPlugin {
 
         confs ++ extraSources.toSeq ++ extraDocs.toSeq
       },
-      mavenProfiles := Set.empty
+      mavenProfiles := Set.empty,
+      versionReconciliation := Seq.empty
     ) ++ {
       if (pubSettings)
-        IvyXml.generateIvyXmlSettings()
+        IvyXmlGeneration.generateIvyXmlSettings
       else
         Nil
     }

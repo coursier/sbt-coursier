@@ -1,12 +1,14 @@
 package lmcoursier.internal
 
-import coursier.cache.internal.ThreadUtil
 import coursier.{Resolution, Resolve}
 import coursier.cache.loggers.{FallbackRefreshDisplay, ProgressBarRefreshDisplay, RefreshLogger}
 import coursier.core._
 import coursier.ivy.IvyRepository
 import coursier.maven.MavenRepository
+import coursier.params.rule.RuleResolution
 import sbt.util.Logger
+
+import scala.collection.mutable
 
 // private[coursier]
 object ResolutionRun {
@@ -15,11 +17,24 @@ object ResolutionRun {
     params: ResolutionParams,
     verbosityLevel: Int,
     log: Logger,
-    configs: Set[Configuration]
+    configs: Set[Configuration],
+    startingResolutionOpt: Option[Resolution]
   ): Either[coursier.error.ResolutionError, Resolution] = {
 
-    val isCompileConfig =
-      configs(Configuration.compile) || configs(Configuration("scala-tool"))
+    val isScalaToolConfig = configs(Configuration("scala-tool"))
+    // Ref coursier/coursier#1340 coursier/coursier#1442
+    // This treats ScalaTool as a sandbox configuration isolated from other subprojects.
+    // Likely this behavior is needed only for ScalaTool configuration where the scala-xml
+    // build's ScalaTool configuration transitively loops back to scala-xml's Compile artifacts.
+    // In most other cases, it's desirable to allow "x->compile" relationship.
+    def isSandboxConfig: Boolean = isScalaToolConfig
+
+    val repositories =
+      params.internalRepositories.drop(if (isSandboxConfig) 1 else 0) ++
+        params.mainRepositories ++
+        params.fallbackDependenciesRepositories
+
+    val rules = params.strictOpt.map(s => Seq((s, RuleResolution.Fail))).getOrElse(Nil)
 
     val printOptionalMessage = verbosityLevel >= 0 && verbosityLevel <= 1
 
@@ -43,7 +58,7 @@ object ResolutionRun {
       ).flatten.mkString("\n")
 
     if (verbosityLevel >= 2) {
-      val repoReprs = params.repositories.map {
+      val repoReprs = repositories.map {
         case r: IvyRepository =>
           s"ivy:${r.pattern}"
         case _: InterProjectRepository =>
@@ -64,52 +79,54 @@ object ResolutionRun {
     if (verbosityLevel >= 2)
       log.info(initialMessage)
 
-    ThreadUtil.withFixedThreadPool(params.parallel) { pool =>
-
-      Resolve()
-        .withDependencies(
-          params.dependencies.collect {
-            case (config, dep) if configs(config) =>
-              dep
-          }
-        )
-        .withRepositories(params.repositories)
-        .withResolutionParams(
-          params
-            .params
-            .addForceVersion(params.interProjectDependencies.map(_.moduleVersion): _*)
-            .withForceScalaVersion(isCompileConfig && params.autoScalaLibOpt.nonEmpty)
-            .withScalaVersion(params.autoScalaLibOpt.map(_._2))
-            .withTypelevel(params.params.typelevel && isCompileConfig)
-        )
-        .withCache(
-          params
-            .cache
-            .withPool(pool)
-            .withLogger(
-              params.loggerOpt.getOrElse {
-                RefreshLogger.create(
-                  if (RefreshLogger.defaultFallbackMode)
-                    new FallbackRefreshDisplay()
-                  else
-                    ProgressBarRefreshDisplay.create(
-                      if (printOptionalMessage) log.info(initialMessage),
-                      if (printOptionalMessage || verbosityLevel >= 2)
-                        log.info(s"Resolved ${params.projectName} dependencies")
-                    )
-                )
-              }
-            )
-        )
-        .either()
-    }
+    Resolve()
+      // re-using various caches from a resolution of a configuration we extend
+      .withInitialResolution(startingResolutionOpt)
+      .withDependencies(
+        params.dependencies.collect {
+          case (config, dep) if configs(config) =>
+            dep
+        }
+      )
+      .withRepositories(repositories)
+      .withResolutionParams(
+        params
+          .params
+          .addForceVersion((if (isSandboxConfig) Nil else params.interProjectDependencies.map(_.moduleVersion)): _*)
+          .withForceScalaVersion(params.autoScalaLibOpt.nonEmpty)
+          .withScalaVersionOpt(params.autoScalaLibOpt.map(_._2))
+          .withTypelevel(params.params.typelevel)
+          .withRules(rules)
+      )
+      .withCache(
+        params
+          .cache
+          .withLogger(
+            params.loggerOpt.getOrElse {
+              RefreshLogger.create(
+                if (RefreshLogger.defaultFallbackMode)
+                  new FallbackRefreshDisplay()
+                else
+                  ProgressBarRefreshDisplay.create(
+                    if (printOptionalMessage) log.info(initialMessage),
+                    if (printOptionalMessage || verbosityLevel >= 2)
+                      log.info(s"Resolved ${params.projectName} dependencies")
+                  )
+              )
+            }
+          )
+      )
+      .either() match {
+        case Left(err) if params.missingOk => Right(err.resolution)
+        case others => others
+      }
   }
 
   def resolutions(
     params: ResolutionParams,
     verbosityLevel: Int,
     log: Logger
-  ): Either[coursier.error.ResolutionError, Map[Set[Configuration], Resolution]] = {
+  ): Either[coursier.error.ResolutionError, Map[Configuration, Resolution]] = {
 
     // TODO Warn about possible duplicated modules from source repositories?
 
@@ -120,17 +137,26 @@ object ResolutionRun {
     }
 
     SbtCoursierCache.default.resolutionOpt(params.resolutionKey).map(Right(_)).getOrElse {
-      // Let's update only one module at once, for a better output.
-      // Downloads are already parallel, no need to parallelize further, anyway.
       val resOrError =
-        Lock.lock.synchronized {
-          params.configGraphs.foldLeft[Either[coursier.error.ResolutionError, Map[Set[Configuration], Resolution]]](Right(Map())) {
-            case (acc, config) =>
+        Lock.maybeSynchronized(needsLock = params.loggerOpt.nonEmpty || !RefreshLogger.defaultFallbackMode) {
+          var map = new mutable.HashMap[Configuration, Resolution]
+          val either = params.orderedConfigs.foldLeft[Either[coursier.error.ResolutionError, Unit]](Right(())) {
+            case (acc, (config, extends0)) =>
               for {
-                m <- acc
-                res <- resolution(params, verbosityLevel, log, config)
-              } yield m + (config -> res)
+                _ <- acc
+                initRes = {
+                  val it = extends0.iterator.flatMap(map.get(_).iterator)
+                  if (it.hasNext) Some(it.next())
+                  else None
+                }
+                allExtends = params.allConfigExtends.getOrElse(config, Set.empty)
+                res <- resolution(params, verbosityLevel, log, allExtends, initRes)
+              } yield {
+                map += config -> res
+                ()
+              }
           }
+          either.map(_ => map.toMap)
         }
       for (res <- resOrError)
         SbtCoursierCache.default.putResolution(params.resolutionKey, res)

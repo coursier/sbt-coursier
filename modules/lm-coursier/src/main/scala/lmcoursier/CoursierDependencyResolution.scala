@@ -1,32 +1,106 @@
 package lmcoursier
 
 import java.io.File
+import java.net.{URL, URLClassLoader, URLConnection, MalformedURLException}
 
-import _root_.coursier.{Artifact, Organization, Resolution, organizationString}
-import _root_.coursier.core.{Classifier, Configuration}
-import coursier.cache.CacheDefaults
+import coursier.{Organization, Resolution, organizationString}
+import coursier.core.{Classifier, Configuration}
+import coursier.cache.{CacheDefaults, CachePolicy}
+import coursier.util.Artifact
 import coursier.internal.Typelevel
 import lmcoursier.definitions.ToCoursier
 import lmcoursier.internal.{ArtifactsParams, ArtifactsRun, CoursierModuleDescriptor, InterProjectRepository, ResolutionParams, ResolutionRun, Resolvers, SbtBootJars, UpdateParams, UpdateRun}
 import sbt.internal.librarymanagement.IvySbt
 import sbt.librarymanagement._
 import sbt.util.Logger
+import coursier.core.Dependency
+import coursier.core.Publication
 
-class CoursierDependencyResolution(conf: CoursierConfiguration) extends DependencyResolutionInterface {
+import scala.util.{Try, Failure}
+
+class CoursierDependencyResolution(
+  conf: CoursierConfiguration,
+  protocolHandlerConfiguration: Option[CoursierConfiguration],
+  bootstrappingProtocolHandler: Boolean
+) extends DependencyResolutionInterface {
+
+  def this(conf: CoursierConfiguration) =
+    this(
+      conf,
+      protocolHandlerConfiguration = None,
+      bootstrappingProtocolHandler = true
+    )
+
+  lmcoursier.CoursierConfiguration.checkLegacyCache()
+
+  private var protocolHandlerClassLoader: Option[ClassLoader] = None
+  private val protocolHandlerClassLoaderLock = new Object
+
+  private def fetchProtocolHandlerClassLoader(
+    configuration: UpdateConfiguration,
+    uwconfig: UnresolvedWarningConfiguration,
+    log: Logger
+  ): ClassLoader = {
+
+    val conf0 = protocolHandlerConfiguration.getOrElse(conf)
+
+    def isUnknownProtocol(rawURL: String): Boolean = {
+      Try(new URL(rawURL)) match {
+        case Failure(ex) if ex.getMessage.startsWith("unknown protocol: ") => true
+        case _ => false
+      }
+    }
+
+    val confWithoutUnknownProtocol =
+      conf0.withResolvers(
+        conf0.resolvers.filter {
+          case maven: MavenRepository =>
+            !isUnknownProtocol(maven.root)
+          case _ =>
+            true
+        }
+      )
+
+    val resolution = new CoursierDependencyResolution(
+      conf = confWithoutUnknownProtocol,
+      protocolHandlerConfiguration = None,
+      bootstrappingProtocolHandler = false
+    )
+
+    val fakeModule =
+      ModuleDescriptorConfiguration(
+        ModuleID("lmcoursier", "lmcoursier", "0.1.0"),
+        ModuleInfo("protocol-handler")
+      )
+      .withDependencies(conf0.protocolHandlerDependencies.toVector)
+
+    val reportOrUnresolved = resolution.update(moduleDescriptor(fakeModule), configuration, uwconfig, log)
+
+    val report = reportOrUnresolved match {
+      case Right(report0) =>
+        report0
+
+      case Left(unresolvedWarning) =>
+        import sbt.util.ShowLines._
+        unresolvedWarning.lines.foreach(log.warn(_))
+        throw unresolvedWarning.resolveException
+    }
+
+    val jars =
+      for {
+        reportConfiguration <- report.configurations.filter(_.configuration.name == "runtime")
+        module <- reportConfiguration.modules
+        (_, jar) <- module.artifacts
+      } yield jar
+
+    new URLClassLoader(jars.map(_.toURI().toURL()).toArray)
+  }
 
   /*
    * Based on earlier implementations by @leonardehrenfried (https://github.com/sbt/librarymanagement/pull/190)
    * and @andreaTP (https://github.com/sbt/librarymanagement/pull/270), then adapted to the code from the former
    * sbt-coursier, that was moved to this module.
    */
-
-  private lazy val excludeDependencies = conf
-    .excludeDependencies
-    .map {
-      case (strOrg, strName) =>
-        (lmcoursier.definitions.Organization(strOrg), lmcoursier.definitions.ModuleName(strName))
-    }
-    .toSet
 
   def moduleDescriptor(moduleSetting: ModuleDescriptorConfiguration): ModuleDescriptor =
     CoursierModuleDescriptor(moduleSetting, conf)
@@ -37,6 +111,16 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
     uwconfig: UnresolvedWarningConfiguration,
     log: Logger
   ): Either[UnresolvedWarning, UpdateReport] = {
+
+    if (bootstrappingProtocolHandler && protocolHandlerClassLoader.isEmpty)
+      protocolHandlerClassLoaderLock.synchronized {
+        if (bootstrappingProtocolHandler && protocolHandlerClassLoader.isEmpty) {
+          val classLoader = fetchProtocolHandlerClassLoader(configuration, uwconfig, log)
+          protocolHandlerClassLoader = Some(classLoader)
+        }
+      }
+
+    val conf = this.conf.withUpdateConfiguration(configuration)
 
     // TODO Take stuff in configuration into account? uwconfig too?
 
@@ -64,17 +148,30 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
     val sbv = module0.scalaModuleInfo.map(_.scalaBinaryVersion).getOrElse {
       sv.split('.').take(2).mkString(".")
     }
+    val (mod, ver) = FromSbt.moduleVersion(module0.module, sv, sbv, optionalCrossVer = true)
+    val interProjectDependencies = {
+      val needed = conf.interProjectDependencies.exists { p =>
+        p.module == mod && p.version == ver
+      }
 
-    val verbosityLevel = 0
+      if (needed)
+        conf.interProjectDependencies.map(ToCoursier.project)
+      else
+        Vector.empty[coursier.core.Project]
+    }
 
-    val ttl = CacheDefaults.ttl
+    val extraProjects = conf.extraProjects.map(ToCoursier.project)
+
+    val verbosityLevel = conf.verbosityLevel
+
+    val ttl = conf.ttl
     val loggerOpt = conf.logger.map(ToCoursier.cacheLogger)
     val cache = conf.cache.getOrElse(CacheDefaults.location)
-    val cachePolicies = CacheDefaults.cachePolicies
-    val checksums = CacheDefaults.checksums
+    val cachePolicies = conf.cachePolicies.map(ToCoursier.cachePolicy)
+    val checksums = conf.checksums
     val projectName = "" // used for logging only…
 
-    val ivyProperties = ResolutionParams.defaultIvyProperties()
+    val ivyProperties = ResolutionParams.defaultIvyProperties(conf.ivyHome)
 
     val classifiers =
       if (conf.hasClassifiers)
@@ -91,11 +188,13 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
           resolver,
           ivyProperties,
           log,
-          authenticationByRepositoryId.get(resolver.name).map(ToCoursier.authentication)
+          authenticationByRepositoryId.get(resolver.name).map(ToCoursier.authentication),
+          protocolHandlerClassLoader.toSeq,
         )
       }
 
-    val interProjectRepo = InterProjectRepository(conf.interProjectDependencies.map(ToCoursier.project))
+    val interProjectRepo = InterProjectRepository(interProjectDependencies)
+    val extraProjectsRepo = InterProjectRepository(extraProjects)
 
     val dependencies = module0
       .dependencies
@@ -106,15 +205,14 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
       }
       .map {
         case (config, dep) =>
-          val dep0 = dep.copy(
-            exclusions = dep.exclusions ++ excludeDependencies
-          )
-          (ToCoursier.configuration(config), ToCoursier.dependency(dep0))
+          (ToCoursier.configuration(config), ToCoursier.dependency(dep))
       }
 
-    val configGraphs = Inputs.ivyGraphs(
-      Inputs.configExtends(module0.configurations)
-    ).map(_.map(ToCoursier.configuration))
+    val orderedConfigs = Inputs.orderedConfigurations(Inputs.configExtendsSeq(module0.configurations))
+      .map {
+        case (config, extends0) =>
+          (ToCoursier.configuration(config), extends0.map(ToCoursier.configuration))
+      }
 
     val typelevel = so == Typelevel.typelevelOrg
 
@@ -124,17 +222,26 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
       .withTtl(ttl)
       .withChecksums(checksums)
       .withCredentials(conf.credentials.map(ToCoursier.credentials))
+      .withFollowHttpToHttpsRedirections(conf.followHttpToHttpsRedirections.getOrElse(true))
+
+    val excludeDependencies = conf
+      .excludeDependencies
+      .map {
+        case (strOrg, strName) =>
+          (coursier.Organization(strOrg), coursier.ModuleName(strName))
+      }
+      .toSet
 
     val resolutionParams = ResolutionParams(
       dependencies = dependencies,
       fallbackDependencies = conf.fallbackDependencies,
-      configGraphs = configGraphs,
+      orderedConfigs = orderedConfigs,
       autoScalaLibOpt = if (conf.autoScalaLibrary) Some((so, sv)) else None,
       mainRepositories = mainRepositories,
       parentProjectCache = Map.empty,
-      interProjectDependencies = conf.interProjectDependencies.map(ToCoursier.project),
-      internalRepositories = Seq(interProjectRepo),
-      sbtClassifiers = false,
+      interProjectDependencies = interProjectDependencies,
+      internalRepositories = Seq(interProjectRepo, extraProjectsRepo),
+      sbtClassifiers = conf.sbtClassifiers,
       projectName = projectName,
       loggerOpt = loggerOpt,
       cache = cache0,
@@ -142,20 +249,26 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
       params = coursier.params.ResolutionParams()
         .withMaxIterations(conf.maxIterations)
         .withProfiles(conf.mavenProfiles.toSet)
-        .withForceVersion(Map.empty)
+        .withForceVersion(conf.forceVersions.map { case (k, v) => (ToCoursier.module(k), v) }.toMap)
         .withTypelevel(typelevel)
+        .withReconciliation(ToCoursier.reconciliation(conf.reconciliation))
+        .withExclusions(excludeDependencies),
+      strictOpt = conf.strict.map(ToCoursier.strict),
+      missingOk = conf.missingOk,
     )
 
-    def artifactsParams(resolutions: Map[Set[Configuration], Resolution]): ArtifactsParams =
+    def artifactsParams(resolutions: Map[Configuration, Resolution]): ArtifactsParams =
       ArtifactsParams(
         classifiers = classifiers,
-        resolutions = resolutions.values.toSeq,
+        resolutions = resolutions.values.toSeq.distinct,
         includeSignatures = false,
         loggerOpt = loggerOpt,
         projectName = projectName,
-        sbtClassifiers = false,
+        sbtClassifiers = conf.sbtClassifiers,
         cache = cache0,
-        parallel = conf.parallelDownloads
+        parallel = conf.parallelDownloads,
+        classpathOrder = conf.classpathOrder,
+        missingOk = conf.missingOk
       )
 
     val sbtBootJarOverrides = SbtBootJars(
@@ -164,35 +277,40 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
       conf.sbtScalaJars
     )
 
-    val configs = Inputs.coursierConfigurations(module0.configurations).map {
+    val configs = Inputs.coursierConfigurationsMap(module0.configurations).map {
       case (k, l) =>
         ToCoursier.configuration(k) -> l.map(ToCoursier.configuration)
     }
 
     def updateParams(
-      resolutions: Map[Set[Configuration], Resolution],
-      artifacts: Map[Artifact, File]
+      resolutions: Map[Configuration, Resolution],
+      artifacts: Seq[(Dependency, Publication, Artifact, Option[File])]
     ) =
       UpdateParams(
-        shadedConfigOpt = None,
-        artifacts = artifacts,
+        thisModule = (ToCoursier.module(mod), ver),
+        artifacts = artifacts.collect { case (d, p, a, Some(f)) => a -> f }.toMap,
+        fullArtifacts = Some(artifacts.map { case (d, p, a, f) => (d, p, a) -> f }.toMap),
         classifiers = classifiers,
         configs = configs,
         dependencies = dependencies,
+        forceVersions = conf.forceVersions.map { case (m, v) => (ToCoursier.module(m), v) }.toMap,
+        interProjectDependencies = interProjectDependencies,
         res = resolutions,
         includeSignatures = false,
-        sbtBootJarOverrides = sbtBootJarOverrides
+        sbtBootJarOverrides = sbtBootJarOverrides,
+        classpathOrder = conf.classpathOrder,
+        missingOk = conf.missingOk,
+        classLoaders = protocolHandlerClassLoader.toSeq,
       )
 
     val e = for {
       resolutions <- ResolutionRun.resolutions(resolutionParams, verbosityLevel, log)
       artifactsParams0 = artifactsParams(resolutions)
-      artifacts <- ArtifactsRun.artifacts(artifactsParams0, verbosityLevel, log)
+      artifacts <- ArtifactsRun(artifactsParams0, verbosityLevel, log)
     } yield {
-      val updateParams0 = updateParams(resolutions, artifacts)
+      val updateParams0 = updateParams(resolutions, artifacts.fullDetailedArtifacts)
       UpdateRun.update(updateParams0, verbosityLevel, log)
     }
-
     e.left.map(unresolvedWarningOrThrow(uwconfig, _))
   }
 
@@ -233,12 +351,21 @@ class CoursierDependencyResolution(conf: CoursierConfiguration) extends Dependen
     } else
       throw ex
   }
-
 }
 
 object CoursierDependencyResolution {
   def apply(configuration: CoursierConfiguration): DependencyResolution =
     DependencyResolution(new CoursierDependencyResolution(configuration))
+
+  def apply(configuration: CoursierConfiguration,
+            protocolHandlerConfiguration: Option[CoursierConfiguration]): DependencyResolution =
+    DependencyResolution(
+      new CoursierDependencyResolution(
+        configuration,
+        protocolHandlerConfiguration,
+        bootstrappingProtocolHandler = true
+      )
+    )
 
   def defaultCacheLocation: File =
     CacheDefaults.location

@@ -1,8 +1,7 @@
 package lmcoursier
 
 import coursier.ivy.IvyXml.{mappings => ivyXmlMappings}
-
-import lmcoursier.definitions.{Attributes, Classifier, Configuration, Dependency, Info, Module, ModuleName, Organization, Project, Type}
+import lmcoursier.definitions.{Classifier, Configuration, Dependency, Extension, Info, Module, ModuleName, Organization, Project, Publication, Type}
 import sbt.internal.librarymanagement.mavenint.SbtPomExtraProperties
 import sbt.librarymanagement.{Configuration => _, MavenRepository => _, _}
 
@@ -35,7 +34,7 @@ object FromSbt {
       !k.startsWith(SbtPomExtraProperties.POM_INFO_KEY_PREFIX)
     }
 
-  private def moduleVersion(
+  def moduleVersion(
     module: ModuleID,
     scalaVersion: String,
     scalaBinaryVersion: String,
@@ -76,7 +75,7 @@ object FromSbt {
         // FIXME Other `rule` fields are ignored here
         (Organization(rule.organization), ModuleName(rule.name))
       }.toSet,
-      Attributes(Type(""), Classifier("")),
+      Publication("", Type(""), Extension(""), Classifier("")),
       optional = false,
       transitive = module.isTransitive
     )
@@ -87,21 +86,30 @@ object FromSbt {
         (Configuration(from.value), Configuration(to.value))
     }
 
-    val attributes =
+    val publications =
       if (module.explicitArtifacts.isEmpty)
-        Seq(Attributes(Type(""), Classifier("")))
+        Seq(Publication("", Type(""), Extension(""), Classifier("")))
       else
-        module.explicitArtifacts.map { a =>
-          Attributes(
-            `type` = Type(a.`type`),
-            classifier = a.classifier.fold(Classifier(""))(Classifier(_))
-          )
-        }
+        module
+          .explicitArtifacts
+          .map { a =>
+            Publication(
+              name = a.name,
+              `type` = Type(a.`type`),
+              ext = Extension(a.extension),
+              classifier = a.classifier.fold(Classifier(""))(Classifier(_))
+            )
+          }
 
     for {
-      (from, to) <- allMappings
-      attr <- attributes
-    } yield from -> dep.copy(configuration = to, attributes = attr)
+      (from, to) <- allMappings.distinct
+      pub <- publications.distinct
+    } yield {
+      val dep0 = dep
+        .withConfiguration(to)
+        .withPublication(pub)
+      from -> dep0
+    }
   }
 
   def fallbackDependencies(
@@ -128,6 +136,14 @@ object FromSbt {
 
     val deps = allDependencies.flatMap(dependencies(_, scalaVersion, scalaBinaryVersion))
 
+    val prefix = "e:" + SbtPomExtraProperties.POM_INFO_KEY_PREFIX
+    val properties = projectID
+      .extraAttributes
+      .filterKeys(_.startsWith(prefix))
+      .toSeq
+      .map { case (k, v) => (k.stripPrefix("e:"), v) }
+      .sortBy(_._1)
+
     Project(
       Module(
         Organization(projectID.organization),
@@ -137,7 +153,7 @@ object FromSbt {
       projectID.revision,
       deps,
       ivyConfigurations,
-      Nil,
+      properties,
       None,
       Nil,
       Info("", "", Nil, Nil, None)

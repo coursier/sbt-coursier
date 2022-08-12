@@ -24,12 +24,12 @@ object ToCoursier {
     )
 
   def authentication(authentication: Authentication): coursier.core.Authentication =
-    coursier.core.Authentication(
-      authentication.user,
-      authentication.password,
-      authentication.optional,
-      authentication.realmOpt
-    )
+    coursier.core.Authentication(authentication.user, authentication.password)
+      .withOptional(authentication.optional)
+      .withRealmOpt(authentication.realmOpt)
+      .withHttpHeaders(authentication.headers)
+      .withHttpsOnly(authentication.httpsOnly)
+      .withPassOnRedirect(authentication.passOnRedirect)
 
   def module(module: Module): coursier.core.Module =
     coursier.core.Module(
@@ -37,6 +37,29 @@ object ToCoursier {
       coursier.core.ModuleName(module.name.value),
       module.attributes
     )
+
+  def moduleMatchers(matcher: ModuleMatchers): coursier.util.ModuleMatchers =
+    coursier.util.ModuleMatchers(
+      exclude = matcher.exclude map { x =>
+        coursier.util.ModuleMatcher(module(x))
+      },
+      include = matcher.include map { x =>
+        coursier.util.ModuleMatcher(module(x))
+      },
+      includeByDefault = matcher.includeByDefault
+    )
+
+  def reconciliation(r: Reconciliation): coursier.core.Reconciliation =
+    r match {
+      case Reconciliation.Default => coursier.core.Reconciliation.Default
+      case Reconciliation.Relaxed => coursier.core.Reconciliation.Relaxed
+      case Reconciliation.Strict => coursier.core.Reconciliation.Strict
+      case Reconciliation.SemVer => coursier.core.Reconciliation.SemVer
+    }
+
+  def reconciliation(rs: Vector[(ModuleMatchers, Reconciliation)]):
+    Vector[(coursier.util.ModuleMatchers, coursier.core.Reconciliation)] =
+    rs map { case (m, r) => (moduleMatchers(m), reconciliation(r)) }
 
   def dependency(dependency: Dependency): coursier.core.Dependency =
     coursier.core.Dependency(
@@ -47,7 +70,7 @@ object ToCoursier {
         case (org, name) =>
           (coursier.core.Organization(org.value), coursier.core.ModuleName(name.value))
       },
-      attributes(dependency.attributes),
+      publication(dependency.publication),
       dependency.optional,
       dependency.transitive
     )
@@ -97,7 +120,8 @@ object ToCoursier {
             dt.minute,
             dt.second
           )
-        }
+        },
+        None // TODO Add scm field in lmcoursier.definitions.Info?
       )
     )
 
@@ -145,4 +169,29 @@ object ToCoursier {
         logger.stop()
     }
 
+  def strict(strict: Strict): coursier.params.rule.Strict =
+    coursier.params.rule.Strict()
+      .withInclude(strict.include.map {
+        case (o, n) =>
+          coursier.util.ModuleMatcher(coursier.Module(coursier.Organization(o), coursier.ModuleName(n)))
+      })
+      .withExclude(strict.exclude.map {
+        case (o, n) =>
+          coursier.util.ModuleMatcher(coursier.Module(coursier.Organization(o), coursier.ModuleName(n)))
+      })
+      .withIncludeByDefault(strict.includeByDefault)
+      .withIgnoreIfForcedVersion(strict.ignoreIfForcedVersion)
+      .withSemVer(strict.semVer)
+
+  def cachePolicy(r: CachePolicy): coursier.cache.CachePolicy =
+    r match {
+      case CachePolicy.LocalOnly => coursier.cache.CachePolicy.LocalOnly
+      case CachePolicy.LocalOnlyIfValid => coursier.cache.CachePolicy.LocalOnlyIfValid
+      case CachePolicy.LocalUpdateChanging => coursier.cache.CachePolicy.LocalUpdateChanging
+      case CachePolicy.LocalUpdate => coursier.cache.CachePolicy.LocalUpdate
+      case CachePolicy.UpdateChanging => coursier.cache.CachePolicy.UpdateChanging
+      case CachePolicy.Update => coursier.cache.CachePolicy.Update
+      case CachePolicy.FetchMissing => coursier.cache.CachePolicy.FetchMissing
+      case CachePolicy.ForceDownload => coursier.cache.CachePolicy.ForceDownload
+    }
 }

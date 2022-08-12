@@ -1,6 +1,8 @@
 package lmcoursier.definitions
 
-final case class Project(
+import dataclass.data
+
+@data class Project(
   module: Module,
   version: String,
   dependencies: Seq[(Configuration, Dependency)],
