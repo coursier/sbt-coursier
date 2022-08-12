@@ -78,8 +78,6 @@ lazy val `lm-coursier-shaded` = project
     shadingRules ++= {
       val toShade = Seq(
         "coursier",
-        "shapeless",
-        "argonaut",
         "org.fusesource",
         "macrocompat",
         "io.github.alexarchambault.windowsansi",
@@ -91,7 +89,8 @@ lazy val `lm-coursier-shaded` = project
         "org.apache.xbean",
         "org.codehaus",
         "org.iq80",
-        "org.tukaani"
+        "org.tukaani",
+        "com.github.plokhotnyuk.jsoniter_scala"
       )
       for (ns <- toShade)
         yield ShadingRule.moveUnder(ns, "lmcoursier.internal.shaded")
