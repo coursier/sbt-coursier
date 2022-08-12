@@ -38,7 +38,7 @@ lazy val `lm-coursier` = project
         if (scalaBinaryVersion.value == "2.12") lmVersion
         else lm2_13Version
       },
-      "org.scalatest" %% "scalatest" % "3.2.12" % Test
+      "org.scalatest" %% "scalatest" % "3.2.13" % Test
     ),
     Test / test := {
       (publishLocal in customProtocolForTest212).value
@@ -98,13 +98,13 @@ lazy val `lm-coursier-shaded` = project
     libraryDependencies ++= Seq(
       "io.get-coursier" %% "coursier" % coursierVersion0,
       "io.github.alexarchambault" %% "data-class" % "0.2.5" % Provided,
-      "org.scala-lang.modules" %% "scala-collection-compat" % "2.7.0",
+      "org.scala-lang.modules" %% "scala-collection-compat" % "2.8.1",
       "org.scala-lang.modules" %% "scala-xml" % "2.1.0", // depending on that one so that it doesn't get shaded
       "org.scala-sbt" %% "librarymanagement-ivy" % {
         if (scalaBinaryVersion.value == "2.12") lmVersion
         else lm2_13Version
       },
-      "org.scalatest" %% "scalatest" % "3.2.12" % Test
+      "org.scalatest" %% "scalatest" % "3.2.13" % Test
     )
   )
 
@@ -115,7 +115,7 @@ lazy val `sbt-coursier-shared` = project
   .settings(
     plugin,
     generatePropertyFile,
-    libraryDependencies += "com.lihaoyi" %% "utest" % "0.7.11" % Test,
+    libraryDependencies += "com.lihaoyi" %% "utest" % "0.8.0" % Test,
     testFrameworks += new TestFramework("utest.runner.Framework")
   )
 
