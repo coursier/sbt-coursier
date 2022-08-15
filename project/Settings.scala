@@ -20,7 +20,7 @@ object Settings {
   }
 
   lazy val shared = Seq(
-    resolvers += Resolver.sonatypeRepo("releases"),
+    resolvers ++= Resolver.sonatypeOssRepos("releases"),
     crossScalaVersions := Seq(scala212),
     scalaVersion := scala212,
     scalacOptions ++= Seq(
@@ -36,13 +36,20 @@ object Settings {
     scalacOptions ++= {
       if (isAtLeastScala213.value) Seq("-Ymacro-annotations")
       else Nil
+    },
+    libraryDependencySchemes ++= {
+      val sv = scalaVersion.value
+      if (sv.startsWith("2.13."))
+        Seq("org.scala-lang.modules" %% "scala-xml" % "always")
+      else
+        Nil
     }
   ) ++ {
     val prop = sys.props.getOrElse("publish.javadoc", "").toLowerCase(Locale.ROOT)
     if (prop == "0" || prop == "false")
       Seq(
-        (Compile / doc / sources) := Seq.empty,
-        (Compile / packageDoc / publishArtifact) := false
+        Compile / doc / sources := Seq.empty,
+        Compile / packageDoc / publishArtifact := false
       )
     else
       Nil
@@ -62,11 +69,11 @@ object Settings {
       ),
       scriptedBufferLog := false,
       sbtPlugin := true,
-      (pluginCrossBuild / sbtVersion) := targetSbtVersion
+      pluginCrossBuild / sbtVersion := targetSbtVersion
     )
 
   lazy val generatePropertyFile =
-    (Compile / resourceGenerators) += Def.task {
+    Compile / resourceGenerators += Def.task {
       import sys.process._
 
       val dir = (Compile / classDirectory).value / "coursier"
