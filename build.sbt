@@ -17,13 +17,14 @@ inThisBuild(List(
   ),
   semanticdbEnabled := true,
   semanticdbVersion := "4.6.0",
-  scalafixDependencies += "net.hamnaberg" %% "dataclass-scalafix" % dataclassScalafixV
+  scalafixDependencies += "net.hamnaberg" %% "dataclass-scalafix" % dataclassScalafixV,
+  libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % "always"
 ))
 
 Global / excludeLintKeys += scriptedBufferLog
 Global / excludeLintKeys += scriptedLaunchOpts
 
-val coursierVersion0 = "2.1.0-M6-53-gb4f448130"
+val coursierVersion0 = "2.1.0-M7-34-gf519b50a3"
 
 def dataclassGen(data: Reference) = Def.taskDyn {
   val root = (ThisBuild / baseDirectory).value.toURI.toString
@@ -123,7 +124,42 @@ lazy val `lm-coursier-shaded` = project
       "licenses/extreme.indiana.edu.license.TXT",
       "licenses/javolution.license.TXT",
       "licenses/thoughtworks.TXT",
-      "licenses/"
+      "licenses/",
+      // zstd files, pulled via plexus-archiver
+      "darwin/",
+      "darwin/aarch64/",
+      "darwin/aarch64/libzstd-jni-1.5.2-4.dylib",
+      "darwin/x86_64/",
+      "darwin/x86_64/libzstd-jni-1.5.2-4.dylib",
+      "freebsd/",
+      "freebsd/amd64/",
+      "freebsd/amd64/libzstd-jni-1.5.2-4.so",
+      "freebsd/i386/",
+      "freebsd/i386/libzstd-jni-1.5.2-4.so",
+      "linux/",
+      "linux/aarch64/",
+      "linux/aarch64/libzstd-jni-1.5.2-4.so",
+      "linux/amd64/",
+      "linux/amd64/libzstd-jni-1.5.2-4.so",
+      "linux/arm/",
+      "linux/arm/libzstd-jni-1.5.2-4.so",
+      "linux/i386/",
+      "linux/i386/libzstd-jni-1.5.2-4.so",
+      "linux/loongarch64/",
+      "linux/loongarch64/libzstd-jni-1.5.2-4.so",
+      "linux/mips64/",
+      "linux/mips64/libzstd-jni-1.5.2-4.so",
+      "linux/ppc64/",
+      "linux/ppc64/libzstd-jni-1.5.2-4.so",
+      "linux/ppc64le/",
+      "linux/ppc64le/libzstd-jni-1.5.2-4.so",
+      "linux/s390x/",
+      "linux/s390x/libzstd-jni-1.5.2-4.so",
+      "win/",
+      "win/amd64/",
+      "win/amd64/libzstd-jni-1.5.2-4.dll",
+      "win/x86/",
+      "win/x86/libzstd-jni-1.5.2-4.dll",
     ),
     shadingRules ++= {
       val toShade = Seq(
@@ -140,7 +176,10 @@ lazy val `lm-coursier-shaded` = project
         "org.codehaus",
         "org.iq80",
         "org.tukaani",
-        "com.github.plokhotnyuk.jsoniter_scala"
+        "com.github.plokhotnyuk.jsoniter_scala",
+        "scala.cli",
+        "com.github.luben.zstd",
+        "javax.inject" // hope shading this is fine… It's probably pulled via plexus-archiver, that sbt shouldn't use anyway…
       )
       for (ns <- toShade)
         yield ShadingRule.moveUnder(ns, "lmcoursier.internal.shaded")
@@ -151,6 +190,7 @@ lazy val `lm-coursier-shaded` = project
       "net.hamnaberg" %% "dataclass-annotation" % dataclassScalafixV % Provided,
       "org.scala-lang.modules" %% "scala-collection-compat" % "2.8.1",
       "org.scala-lang.modules" %% "scala-xml" % "1.3.0", // depending on that one so that it doesn't get shaded
+      "org.slf4j" % "slf4j-api" % "2.0.3", // depending on that one so that it doesn't get shaded either
       lmIvy.value,
       "org.scalatest" %% "scalatest" % "3.2.14" % Test
     )
@@ -261,3 +301,4 @@ lazy val `sbt-coursier-root` = project
     (publish / skip) := true
   )
 
+Global / onChangedBuildSource := ReloadOnSourceChanges
