@@ -18,14 +18,13 @@ inThisBuild(List(
   semanticdbEnabled := true,
   semanticdbVersion := "4.6.0",
   scalafixDependencies += "net.hamnaberg" %% "dataclass-scalafix" % dataclassScalafixV,
-  libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % "always",
-  version := "2.0.13-SNAPSHOT"
+  libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % "always"
 ))
 
 Global / excludeLintKeys += scriptedBufferLog
 Global / excludeLintKeys += scriptedLaunchOpts
 
-val coursierVersion0 = "2.1.0-RC5-5-e9495973e-SNAPSHOT"
+val coursierVersion0 = "2.1.0-RC5"
 
 def dataclassGen(data: Reference) = Def.taskDyn {
   val root = (ThisBuild / baseDirectory).value.toURI.toString
