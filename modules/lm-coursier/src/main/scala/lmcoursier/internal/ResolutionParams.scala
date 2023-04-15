@@ -1,7 +1,6 @@
 package lmcoursier.internal
 
 import java.io.File
-
 import coursier.cache.{CacheLogger, FileCache}
 import coursier.ProjectCache
 import coursier.core._
@@ -9,8 +8,8 @@ import coursier.params.rule.Strict
 import lmcoursier.FallbackDependency
 import lmcoursier.definitions.ToCoursier
 import coursier.util.Task
-
 import scala.collection.mutable
+import scala.concurrent.duration.FiniteDuration
 
 // private[coursier]
 final case class ResolutionParams(
@@ -30,6 +29,7 @@ final case class ResolutionParams(
   params: coursier.params.ResolutionParams,
   strictOpt: Option[Strict],
   missingOk: Boolean,
+  retry: Option[(FiniteDuration, Int)]
 ) {
 
   lazy val allConfigExtends: Map[Configuration, Set[Configuration]] = {

@@ -169,6 +169,7 @@ object ResolutionTasks {
             .withExclusions(excludeDeps),
           strictOpt = strictOpt,
           missingOk = missingOk,
+          retry = None
         ),
         verbosityLevel,
         log

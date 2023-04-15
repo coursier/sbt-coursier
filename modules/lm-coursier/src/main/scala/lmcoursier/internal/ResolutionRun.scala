@@ -1,14 +1,19 @@
 package lmcoursier.internal
 
+import java.util.concurrent.{Executors, ThreadFactory}
 import coursier.{Resolution, Resolve}
 import coursier.cache.loggers.{FallbackRefreshDisplay, ProgressBarRefreshDisplay, RefreshLogger}
 import coursier.core._
+import coursier.error.ResolutionError
 import coursier.ivy.IvyRepository
 import coursier.maven.MavenRepositoryLike
 import coursier.params.rule.RuleResolution
+import coursier.util.Task
 import sbt.util.Logger
-
+import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.concurrent.duration.FiniteDuration
+import scala.util.{Failure, Try}
 
 // private[coursier]
 object ResolutionRun {
@@ -79,47 +84,76 @@ object ResolutionRun {
     if (verbosityLevel >= 2)
       log.info(initialMessage)
 
-    Resolve()
-      // re-using various caches from a resolution of a configuration we extend
-      .withInitialResolution(startingResolutionOpt)
-      .withDependencies(
-        params.dependencies.collect {
-          case (config, dep) if configs(config) =>
-            dep
-        }
-      )
-      .withRepositories(repositories)
-      .withResolutionParams(
-        params
-          .params
-          .addForceVersion((if (isSandboxConfig) Nil else params.interProjectDependencies.map(_.moduleVersion)): _*)
-          .withForceScalaVersion(params.autoScalaLibOpt.nonEmpty)
-          .withScalaVersionOpt(params.autoScalaLibOpt.map(_._2))
-          .withTypelevel(params.params.typelevel)
-          .withRules(rules)
-      )
-      .withCache(
-        params
-          .cache
-          .withLogger(
-            params.loggerOpt.getOrElse {
-              RefreshLogger.create(
-                if (RefreshLogger.defaultFallbackMode)
-                  new FallbackRefreshDisplay()
-                else
-                  ProgressBarRefreshDisplay.create(
-                    if (printOptionalMessage) log.info(initialMessage),
-                    if (printOptionalMessage || verbosityLevel >= 2)
-                      log.info(s"Resolved ${params.projectName} dependencies")
-                  )
-              )
+    val resolveTask: Resolve[Task] = {
+      Resolve()
+        // re-using various caches from a resolution of a configuration we extend
+        .withInitialResolution(startingResolutionOpt)
+        .withDependencies(
+          params.dependencies.collect {
+            case (config, dep) if configs(config) =>
+              dep
+          }
+        )
+        .withRepositories(repositories)
+        .withResolutionParams(
+          params
+            .params
+            .addForceVersion((if (isSandboxConfig) Nil else params.interProjectDependencies.map(_.moduleVersion)): _*)
+            .withForceScalaVersion(params.autoScalaLibOpt.nonEmpty)
+            .withScalaVersionOpt(params.autoScalaLibOpt.map(_._2))
+            .withTypelevel(params.params.typelevel)
+            .withRules(rules)
+        )
+        .withCache(
+          params
+            .cache
+            .withLogger(
+              params.loggerOpt.getOrElse {
+                RefreshLogger.create(
+                  if (RefreshLogger.defaultFallbackMode)
+                    new FallbackRefreshDisplay()
+                  else
+                    ProgressBarRefreshDisplay.create(
+                      if (printOptionalMessage) log.info(initialMessage),
+                      if (printOptionalMessage || verbosityLevel >= 2)
+                        log.info(s"Resolved ${params.projectName} dependencies")
+                    )
+                )
+              }
+            )
+        )
+    }
+
+    val finalTask: Either[ResolutionError, Resolution] =
+      params.retry match {
+        case None => resolveTask.either()
+        case Some((period, maxAttempts)) =>
+
+          @tailrec
+          def retry(count: Int): Either[ResolutionError, Resolution] = {
+            resolveTask.either() match {
+              case Left(e: ResolutionError) =>
+                if (count >= maxAttempts) {
+                  val ex = new ResolutionError.MaximumIterationReached(e.resolution)
+                  Left(ex)
+                }
+                else {
+                  sys.error(s"Attempt $count failed: ${e.toString}")
+                  Thread.sleep(period.toMillis)
+                  retry(count + 1)
+                }
+
+              case Right(res) => Right(res)
             }
-          )
-      )
-      .either() match {
-        case Left(err) if params.missingOk => Right(err.resolution)
-        case others => others
+          }
+
+          retry(1)
       }
+
+    finalTask match {
+      case Left(err) if params.missingOk => Right(err.resolution)
+      case others => others
+    }
   }
 
   def resolutions(
