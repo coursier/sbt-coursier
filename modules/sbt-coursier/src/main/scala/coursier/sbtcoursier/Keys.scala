@@ -1,15 +1,13 @@
 package coursier.sbtcoursier
 
 import java.io.File
-
 import coursier.cache.CachePolicy
 import coursier.ProjectCache
-import coursier.core._
+import coursier.core.*
 import coursier.util.Artifact
 import sbt.librarymanagement.{GetClassifiersModule, Resolver}
 import sbt.{InputKey, SettingKey, TaskKey}
-
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 
 object Keys {
   val coursierParallelDownloads = SettingKey[Int]("coursier-parallel-downloads")
@@ -52,4 +50,6 @@ object Keys {
   val coursierSignedArtifacts = TaskKey[Map[Artifact, File]]("coursier-signed-artifacts")
   val coursierClassifiersArtifacts = TaskKey[Map[Artifact, File]]("coursier-classifiers-artifacts")
   val coursierSbtClassifiersArtifacts = TaskKey[Map[Artifact, File]]("coursier-sbt-classifiers-artifacts")
+
+  val coursierRetry = SettingKey[Option[(FiniteDuration, Int)]]("coursier-retry")
 }

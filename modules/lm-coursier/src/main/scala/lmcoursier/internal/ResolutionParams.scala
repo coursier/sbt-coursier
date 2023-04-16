@@ -9,7 +9,7 @@ import lmcoursier.FallbackDependency
 import lmcoursier.definitions.ToCoursier
 import coursier.util.Task
 import scala.collection.mutable
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 // private[coursier]
 final case class ResolutionParams(
@@ -106,4 +106,5 @@ object ResolutionParams {
     ) ++ sys.props
   }
 
+  val defaultRetry: (FiniteDuration, Int) = (100.millis, 3)
 }

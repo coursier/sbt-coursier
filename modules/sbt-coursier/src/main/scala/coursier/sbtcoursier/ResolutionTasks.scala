@@ -169,7 +169,7 @@ object ResolutionTasks {
             .withExclusions(excludeDeps),
           strictOpt = strictOpt,
           missingOk = missingOk,
-          retry = None
+          retry = coursierRetry.value.getOrElse(Some(ResolutionParams.defaultRetry))
         ),
         verbosityLevel,
         log
