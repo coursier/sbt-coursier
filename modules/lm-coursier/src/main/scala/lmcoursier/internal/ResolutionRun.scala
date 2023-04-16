@@ -1,7 +1,6 @@
 package lmcoursier.internal
 
 import java.util.concurrent.{Executors, ThreadFactory}
-import coursier.{Resolution, Resolve}
 import coursier.cache.loggers.{FallbackRefreshDisplay, ProgressBarRefreshDisplay, RefreshLogger}
 import coursier.core._
 import coursier.error.ResolutionError
@@ -9,11 +8,11 @@ import coursier.ivy.IvyRepository
 import coursier.maven.MavenRepositoryLike
 import coursier.params.rule.RuleResolution
 import coursier.util.Task
+import coursier.{Resolution, Resolve}
 import sbt.util.Logger
-import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.concurrent.duration.FiniteDuration
-import scala.util.{Failure, Try}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 // private[coursier]
 object ResolutionRun {
@@ -124,30 +123,66 @@ object ResolutionRun {
         )
     }
 
+    def retryOnFailure(maxAttempts: Int,
+                       delay: Future[Unit],
+                       retry: Int => Future[Either[ResolutionError, Resolution]],
+                       count: Int,
+                       resolutionError: Option[ResolutionError],
+                       exception: Throwable,
+                       resolution: Resolution)(implicit ec: ExecutionContext):
+    Future[Either[ResolutionError, Resolution]] = {
+
+      if (count >= maxAttempts) {
+        val ex = new ResolutionError.MaximumIterationReached(resolution)
+        Future.successful(Left(ex))
+      }
+      else {
+        sys.error(s"Attempt $count failed: ${resolutionError.map(_.toString).getOrElse(exception.toString)}")
+        delay.flatMap { _ =>
+          retry(count + 1)
+        }
+      }
+    }
+
     val finalTask: Either[ResolutionError, Resolution] =
       params.retry match {
         case None => resolveTask.either()
         case Some((period, maxAttempts)) =>
+          val scheduler = Executors.newSingleThreadScheduledExecutor(
+            new ThreadFactory {
+              val defaultThreadFactory: ThreadFactory = Executors.defaultThreadFactory()
 
-          @tailrec
-          def retry(count: Int): Either[ResolutionError, Resolution] = {
-            resolveTask.either() match {
-              case Left(e: ResolutionError) =>
-                if (count >= maxAttempts) {
-                  val ex = new ResolutionError.MaximumIterationReached(e.resolution)
-                  Left(ex)
-                }
-                else {
-                  sys.error(s"Attempt $count failed: ${e.toString}")
-                  Thread.sleep(period.toMillis)
-                  retry(count + 1)
-                }
-
-              case Right(res) => Right(res)
+              def newThread(r: Runnable): Thread = {
+                val t = defaultThreadFactory.newThread(r)
+                t.setDaemon(true)
+                t.setName("retry-handler")
+                t
+              }
             }
+          )
+          implicit val ec: ExecutionContext = resolveTask.cache.ec
+
+          val delay = Task.completeAfter(scheduler, period).future()
+
+          def retry(count: Int): Future[Either[ResolutionError, Resolution]] = {
+            val resolveResult: Future[Either[ResolutionError, Resolution]] =
+              resolveTask
+                .io
+                .map(Right(_))
+                .handle { case ex: ResolutionError => Left(ex) }
+                .future()(resolveTask.cache.ec)
+                .flatMap {
+                  case Left(e: ResolutionError) =>
+                    retryOnFailure(maxAttempts, delay, retry, count, Some(e), e, e.resolution)
+
+                  case Right(res) => Future.successful(Right(res))
+                }.recoverWith { case ex =>
+                retryOnFailure(maxAttempts, delay, retry, count, None, ex, Resolution.empty)
+              }
+            resolveResult
           }
 
-          retry(1)
+          Await.result(retry(1), Duration.Inf)
       }
 
     finalTask match {
