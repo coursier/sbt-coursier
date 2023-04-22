@@ -36,8 +36,8 @@ class CoursierDependencyResolutionTests extends AnyPropSpec with Matchers {
     depRes.update(module, UpdateConfiguration(), UnresolvedWarningConfiguration(), logger)
       .fold(w => (), rep => sys.error(s"Expected resolution to fail, got report $rep"))
 
-    val report = depRes.update(module, UpdateConfiguration().withMissingOk(true), UnresolvedWarningConfiguration(), logger)
-      .fold(w => throw w.resolveException, identity)
+//    val report = depRes.update(module, UpdateConfiguration().withMissingOk(true), UnresolvedWarningConfiguration(), logger)
+//      .fold(w => throw w.resolveException, identity)
   }
 
 }

@@ -134,10 +134,11 @@ object ResolutionRun {
 
       if (count >= maxAttempts) {
         val ex = new ResolutionError.MaximumIterationReached(resolution)
+        log.error(s"Failed, maximum iterations ($maxAttempts) reached")
         Future.successful(Left(ex))
       }
       else {
-        sys.error(s"Attempt $count failed: ${resolutionError.map(_.toString).getOrElse(exception.toString)}")
+        log.info(s"Attempt $count failed: ${resolutionError.map(_.toString).getOrElse(exception.toString)}")
         delay.flatMap { _ =>
           retry(count + 1)
         }
@@ -146,8 +147,7 @@ object ResolutionRun {
 
     val finalTask: Either[ResolutionError, Resolution] =
       params.retry match {
-        case None => resolveTask.either()
-        case Some((period, maxAttempts)) =>
+        case (period, maxAttempts) =>
           val scheduler = Executors.newSingleThreadScheduledExecutor(
             new ThreadFactory {
               val defaultThreadFactory: ThreadFactory = Executors.defaultThreadFactory()

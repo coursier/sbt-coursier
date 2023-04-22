@@ -29,7 +29,7 @@ final case class ResolutionParams(
   params: coursier.params.ResolutionParams,
   strictOpt: Option[Strict],
   missingOk: Boolean,
-  retry: Option[(FiniteDuration, Int)]
+  retry: (FiniteDuration, Int)
 ) {
 
   lazy val allConfigExtends: Map[Configuration, Set[Configuration]] = {

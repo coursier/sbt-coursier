@@ -3,10 +3,9 @@ package lmcoursier
 import coursier.cache.CacheDefaults
 import lmcoursier.credentials._
 import lmcoursier.definitions._
-import sbt.librarymanagement.{Resolver, UpdateConfiguration, ModuleID, CrossVersion, ModuleInfo, ModuleDescriptorConfiguration}
+import sbt.librarymanagement.{CrossVersion, ModuleDescriptorConfiguration, ModuleID, ModuleInfo, Resolver, UpdateConfiguration}
 import xsbti.Logger
-
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import java.io.File
 import java.net.URL
 import java.net.URLClassLoader
@@ -74,6 +73,7 @@ package object syntax {
         sbtClassifiers = false,
         providedInCompile = false,
         protocolHandlerDependencies = Vector.empty,
+        retry = None
       )
   }
 
@@ -107,6 +107,9 @@ package object syntax {
 
     def withUpdateConfiguration(conf: UpdateConfiguration): CoursierConfiguration =
       value.withMissingOk(conf.missingOk)
+
+    def withRetry(retry: (FiniteDuration, Int)): CoursierConfiguration =
+      value.withRetry(Some((retry._1, retry._2)))
   }
 
   implicit class PublicationOp(value: Publication) {
