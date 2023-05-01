@@ -194,7 +194,6 @@ lazy val `sbt-lm-coursier` = project
   .dependsOn(`sbt-coursier-shared-shaded`)
   .settings(
     plugin,
-    sbtTestDirectory := (`sbt-coursier` / sbtTestDirectory).value,
     scriptedDependencies := {
       scriptedDependencies.value
 
@@ -204,23 +203,6 @@ lazy val `sbt-lm-coursier` = project
        (`sbt-coursier-shared-shaded` / publishLocal).value
      }
    )
-
-lazy val `sbt-coursier` = project
-  .in(file("modules/sbt-coursier"))
-  .enablePlugins(ScriptedPlugin)
-  .disablePlugins(MimaPlugin)
-  .dependsOn(`sbt-coursier-shared`)
-  .settings(
-    plugin,
-    scriptedDependencies := {
-      scriptedDependencies.value
-
-      // TODO Get dependency projects automatically
-      // (but shouldn't scripted itself handle that…?)
-      (`lm-coursier` / publishLocal).value
-      (`sbt-coursier-shared` / publishLocal).value
-    }
-  )
 
 lazy val customProtocolForTest212 = project
   .in(file("modules/custom-protocol-for-test-2-12"))
@@ -261,7 +243,6 @@ lazy val `sbt-coursier-root` = project
     definitions,
     `lm-coursier`,
     `lm-coursier-shaded`,
-    `sbt-coursier`,
     `sbt-coursier-shared`,
     `sbt-coursier-shared-shaded`,
     `sbt-lm-coursier`
