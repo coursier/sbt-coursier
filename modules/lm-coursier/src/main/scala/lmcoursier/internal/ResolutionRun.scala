@@ -133,7 +133,7 @@ object ResolutionRun {
     Future[Either[ResolutionError, Resolution]] = {
 
       if (count >= maxAttempts) {
-        val ex = new ResolutionError.MaximumIterationReached(resolution)
+        val ex = resolutionError.getOrElse(new ResolutionError.MaximumIterationReached(resolution))
         log.error(s"Failed, maximum iterations ($maxAttempts) reached")
         Future.successful(Left(ex))
       }
