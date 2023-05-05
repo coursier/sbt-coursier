@@ -1,8 +1,7 @@
 package coursier.sbtcoursiershared
 
 import java.io.File
-
-import coursier.{Credentials => LegacyCredentials}
+import coursier.Credentials as LegacyCredentials
 import lmcoursier.credentials.Credentials
 import lmcoursier.{CoursierDependencyResolution, FallbackDependency}
 import lmcoursier.definitions.{CacheLogger, Configuration, Project, Publication}
@@ -12,6 +11,7 @@ import sbt.{AutoPlugin, Classpaths, Compile, Setting, TaskKey, Test, settingKey,
 import sbt.Keys._
 import sbt.librarymanagement.DependencyBuilders.OrganizationArtifactName
 import sbt.librarymanagement.{ModuleID, Resolver, URLRepository}
+import scala.concurrent.duration.FiniteDuration
 
 object SbtCoursierShared extends AutoPlugin {
 
@@ -52,6 +52,8 @@ object SbtCoursierShared extends AutoPlugin {
     val coursierCache = settingKey[File]("")
 
     val sbtCoursierVersion = Properties.version
+
+    val coursierRetry = taskKey[Option[(FiniteDuration, Int)]]("Retry for downloading dependencies")
   }
 
   import autoImport._
@@ -71,7 +73,8 @@ object SbtCoursierShared extends AutoPlugin {
       coursierReorderResolvers := true,
       coursierKeepPreloaded := false,
       coursierLogger := None,
-      coursierCache := CoursierDependencyResolution.defaultCacheLocation
+      coursierCache := CoursierDependencyResolution.defaultCacheLocation,
+      coursierRetry := None
     )
 
   private val pluginIvySnapshotsBase = Resolver.SbtRepositoryRoot.stripSuffix("/") + "/ivy-snapshots"
@@ -178,7 +181,8 @@ object SbtCoursierShared extends AutoPlugin {
         confs ++ extraSources.toSeq ++ extraDocs.toSeq
       },
       mavenProfiles := Set.empty,
-      versionReconciliation := Seq.empty
+      versionReconciliation := Seq.empty,
+      coursierRetry := None
     ) ++ {
       if (pubSettings)
         IvyXmlGeneration.generateIvyXmlSettings

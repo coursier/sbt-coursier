@@ -50,6 +50,4 @@ object Keys {
   val coursierSignedArtifacts = TaskKey[Map[Artifact, File]]("coursier-signed-artifacts")
   val coursierClassifiersArtifacts = TaskKey[Map[Artifact, File]]("coursier-classifiers-artifacts")
   val coursierSbtClassifiersArtifacts = TaskKey[Map[Artifact, File]]("coursier-sbt-classifiers-artifacts")
-
-  val coursierRetry = SettingKey[Option[(FiniteDuration, Int)]]("coursier-retry")
 }
