@@ -106,5 +106,5 @@ object ResolutionParams {
     ) ++ sys.props
   }
 
-  val defaultRetry: (FiniteDuration, Int) = (100.millis, 3)
+  val defaultRetry: (FiniteDuration, Int) = (1.seconds, 3)
 }

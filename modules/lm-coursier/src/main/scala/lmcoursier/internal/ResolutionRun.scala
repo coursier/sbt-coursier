@@ -1,6 +1,6 @@
 package lmcoursier.internal
 
-import java.util.concurrent.{Executors, ThreadFactory}
+import java.util.concurrent.{Executors, ScheduledExecutorService, ThreadFactory, TimeUnit}
 import coursier.cache.loggers.{FallbackRefreshDisplay, ProgressBarRefreshDisplay, RefreshLogger}
 import coursier.core._
 import coursier.error.ResolutionError
@@ -11,7 +11,7 @@ import coursier.util.Task
 import coursier.{Resolution, Resolve}
 import sbt.util.Logger
 import scala.collection.mutable
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{Await, ExecutionContext, Future}
 
 // private[coursier]
@@ -124,23 +124,30 @@ object ResolutionRun {
     }
 
     def retryOnFailure(maxAttempts: Int,
-                       delay: Future[Unit],
                        retry: Int => Future[Either[ResolutionError, Resolution]],
-                       count: Int,
+                       attempt: Int,
                        resolutionError: Option[ResolutionError],
                        exception: Throwable,
-                       resolution: Resolution)(implicit ec: ExecutionContext):
+                       resolution: Resolution,
+                       period: FiniteDuration,
+                       scheduler: ScheduledExecutorService)(implicit ec: ExecutionContext):
     Future[Either[ResolutionError, Resolution]] = {
+      //Backoff retry
+      def delay(attempt: Int): Future[Unit] = {
+        val secondsToWait = (period * Math.pow(2, attempt)).toSeconds
+        val timeToWait = FiniteDuration(secondsToWait, TimeUnit.SECONDS)
+        Task.completeAfter(scheduler, timeToWait).future()
+      }
 
-      if (count >= maxAttempts) {
+      if (attempt >= maxAttempts) {
         val ex = resolutionError.getOrElse(new ResolutionError.MaximumIterationReached(resolution))
         log.error(s"Failed, maximum iterations ($maxAttempts) reached")
         Future.successful(Left(ex))
       }
       else {
-        log.info(s"Attempt $count failed: ${resolutionError.map(_.toString).getOrElse(exception.toString)}")
-        delay.flatMap { _ =>
-          retry(count + 1)
+        log.info(s"Attempt $attempt failed: ${resolutionError.map(_.toString).getOrElse(exception.toString)}")
+        delay(attempt).flatMap { _ =>
+          retry(attempt + 1)
         }
       }
     }
@@ -148,7 +155,7 @@ object ResolutionRun {
     val finalTask: Either[ResolutionError, Resolution] =
       params.retry match {
         case (period, maxAttempts) =>
-          val scheduler = Executors.newSingleThreadScheduledExecutor(
+          val scheduler: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
             new ThreadFactory {
               val defaultThreadFactory: ThreadFactory = Executors.defaultThreadFactory()
 
@@ -162,9 +169,7 @@ object ResolutionRun {
           )
           implicit val ec: ExecutionContext = resolveTask.cache.ec
 
-          val delay = Task.completeAfter(scheduler, period).future()
-
-          def retry(count: Int): Future[Either[ResolutionError, Resolution]] = {
+          def retry(attempt: Int): Future[Either[ResolutionError, Resolution]] = {
             val resolveResult: Future[Either[ResolutionError, Resolution]] =
               resolveTask
                 .io
@@ -173,11 +178,11 @@ object ResolutionRun {
                 .future()(resolveTask.cache.ec)
                 .flatMap {
                   case Left(e: ResolutionError) =>
-                    retryOnFailure(maxAttempts, delay, retry, count, Some(e), e, e.resolution)
+                    retryOnFailure(maxAttempts, retry, attempt, Some(e), e, e.resolution, period, scheduler)
 
                   case Right(res) => Future.successful(Right(res))
                 }.recoverWith { case ex =>
-                retryOnFailure(maxAttempts, delay, retry, count, None, ex, Resolution.empty)
+                retryOnFailure(maxAttempts, retry, attempt, None, ex, Resolution.empty, period, scheduler)
               }
             resolveResult
           }
