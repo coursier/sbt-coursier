@@ -4,6 +4,7 @@ import java.util.concurrent.{Executors, ScheduledExecutorService, ThreadFactory,
 import coursier.cache.loggers.{FallbackRefreshDisplay, ProgressBarRefreshDisplay, RefreshLogger}
 import coursier.core._
 import coursier.error.ResolutionError
+import coursier.error.ResolutionError.{CantDownloadModule, Several, Simple}
 import coursier.ivy.IvyRepository
 import coursier.maven.MavenRepositoryLike
 import coursier.params.rule.RuleResolution
@@ -178,8 +179,26 @@ object ResolutionRun {
                 .future()(resolveTask.cache.ec)
                 .flatMap {
                   case Left(e: ResolutionError) =>
-                    retryOnFailure(maxAttempts, retry, attempt, Some(e), e, e.resolution, period, scheduler)
+                    //retry only with specific error types
+                    e match {
+                      case cantDownload: CantDownloadModule =>
+                        val isNotFound = isNotFoundError(cantDownload)
+                        if (isNotFound) //404 is shouldn't trigger retry
+                          Future.successful(Left(e))
+                        else
+                          retryOnFailure(maxAttempts, retry, attempt, Some(e), e, e.resolution, period, scheduler)
 
+                      case several: Several =>
+                        val isCantDownload = several.errors.exists(_.isInstanceOf[CantDownloadModule])
+                        val isNotFound = several.errors.exists(isNotFoundError(_))
+
+                        if (isCantDownload && !isNotFound) {
+                          retryOnFailure(maxAttempts, retry, attempt, Some(e), e, e.resolution, period, scheduler)
+                        } else {
+                          Future.successful(Left(e))
+                        }
+                      case _ => Future.successful(Left(e))
+                    }
                   case Right(res) => Future.successful(Right(res))
                 }.recoverWith { case ex =>
                 retryOnFailure(maxAttempts, retry, attempt, None, ex, Resolution.empty, period, scheduler)
@@ -238,4 +257,7 @@ object ResolutionRun {
     }
   }
 
+  private def isNotFoundError(resolutionError: ResolutionError): Boolean = {
+    resolutionError.getMessage.toLowerCase().contains("not found")
+  }
 }
