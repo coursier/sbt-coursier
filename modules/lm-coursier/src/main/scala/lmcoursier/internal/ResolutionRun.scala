@@ -14,6 +14,7 @@ import sbt.util.Logger
 import scala.collection.mutable
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 // private[coursier]
 object ResolutionRun {
@@ -179,28 +180,16 @@ object ResolutionRun {
                 .future()(resolveTask.cache.ec)
                 .flatMap {
                   case Left(e: ResolutionError) =>
-                    //retry only with specific error types
-                    e match {
-                      case cantDownload: CantDownloadModule =>
-                        val isNotFound = isNotFoundError(cantDownload)
-                        if (isNotFound) //404 is shouldn't trigger retry
-                          Future.successful(Left(e))
-                        else
-                          retryOnFailure(maxAttempts, retry, attempt, Some(e), e, e.resolution, period, scheduler)
-
-                      case several: Several =>
-                        val isCantDownload = several.errors.exists(_.isInstanceOf[CantDownloadModule])
-                        val isNotFound = several.errors.exists(isNotFoundError(_))
-
-                        if (isCantDownload && !isNotFound) {
-                          retryOnFailure(maxAttempts, retry, attempt, Some(e), e, e.resolution, period, scheduler)
-                        } else {
-                          Future.successful(Left(e))
-                        }
-                      case _ => Future.successful(Left(e))
+                    val isCantDownload = e.errors.exists(_.isInstanceOf[CantDownloadModule])
+                    //should not retry in case "not found" error thrown
+                    val isNotFound = e.errors.exists(isNotFoundError(_))
+                    if(isCantDownload && !isNotFound) {
+                      retryOnFailure(maxAttempts, retry, attempt, Some(e), e, e.resolution, period, scheduler)
+                    } else {
+                      Future.successful(Left(e))
                     }
                   case Right(res) => Future.successful(Right(res))
-                }.recoverWith { case ex =>
+                }.recoverWith { case NonFatal(ex) =>
                 retryOnFailure(maxAttempts, retry, attempt, None, ex, Resolution.empty, period, scheduler)
               }
             resolveResult
