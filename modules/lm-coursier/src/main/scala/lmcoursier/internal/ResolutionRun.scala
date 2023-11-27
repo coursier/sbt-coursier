@@ -1,7 +1,7 @@
 package lmcoursier.internal
 
 import coursier.{Resolution, Resolve}
-import java.util.concurrent.{Executors, ScheduledExecutorService, ThreadFactory, TimeUnit}
+import java.util.concurrent.{Executors, ScheduledExecutorService, ThreadFactory}
 import coursier.cache.loggers.{FallbackRefreshDisplay, ProgressBarRefreshDisplay, RefreshLogger}
 import coursier.core._
 import coursier.error.ResolutionError
@@ -137,8 +137,10 @@ object ResolutionRun {
     Future[Either[ResolutionError, Resolution]] = {
       //Backoff retry
       def delay(attempt: Int): Future[Unit] = {
-        val secondsToWait = (period * Math.pow(2, attempt)).toSeconds
-        val timeToWait = FiniteDuration(secondsToWait, TimeUnit.SECONDS)
+        val timeToWait = (period * Math.pow(2, attempt)) match {
+          case f: FiniteDuration => f
+          case _: Duration       => sys.error("Cannot happen")
+        }
         Task.completeAfter(scheduler, timeToWait).future()
       }
 
