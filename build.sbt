@@ -24,7 +24,7 @@ inThisBuild(List(
 Global / excludeLintKeys += scriptedBufferLog
 Global / excludeLintKeys += scriptedLaunchOpts
 
-def coursierVersion0 = "2.1.4"
+def coursierVersion0 = "2.1.8"
 def coursierDep = ("io.get-coursier" %% "coursier" % coursierVersion0)
   .exclude("org.codehaus.plexus", "plexus-archiver")
   .exclude("org.codehaus.plexus", "plexus-container-default")
@@ -92,7 +92,7 @@ lazy val `lm-coursier` = project
       // IvySbt#Module (seems DependencyResolutionInterface.moduleDescriptor
       // is ignored).
       lmIvy.value,
-      "org.scalatest" %% "scalatest" % "3.2.16" % Test
+      "org.scalatest" %% "scalatest" % "3.2.17" % Test
     ),
     Test / exportedProducts := {
       (Test / preTest).value
@@ -159,11 +159,11 @@ lazy val `lm-coursier-shaded` = project
       "io.get-coursier" %% "coursier-sbt-maven-repository" % coursierVersion0,
       "io.get-coursier.jniutils" % "windows-jni-utils-lmcoursier" % jniUtilsVersion,
       "net.hamnaberg" %% "dataclass-annotation" % dataclassScalafixV % Provided,
-      "org.scala-lang.modules" %% "scala-collection-compat" % "2.10.0",
+      "org.scala-lang.modules" %% "scala-collection-compat" % "2.11.0",
       "org.scala-lang.modules" %% "scala-xml" % "2.2.0", // depending on that one so that it doesn't get shaded
       "org.slf4j" % "slf4j-api" % "1.7.36", // depending on that one so that it doesn't get shaded either
       lmIvy.value,
-      "org.scalatest" %% "scalatest" % "3.2.16" % Test
+      "org.scalatest" %% "scalatest" % "3.2.17" % Test
     )
   )
 
@@ -174,7 +174,7 @@ lazy val `sbt-coursier-shared` = project
   .settings(
     plugin,
     generatePropertyFile,
-    libraryDependencies += "com.lihaoyi" %% "utest" % "0.8.1" % Test,
+    libraryDependencies += "com.lihaoyi" %% "utest" % "0.8.2" % Test,
     testFrameworks += new TestFramework("utest.runner.Framework")
   )
 
