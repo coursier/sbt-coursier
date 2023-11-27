@@ -160,51 +160,50 @@ object ResolutionRun {
       }
     }
 
-    val finalTask: Either[ResolutionError, Resolution] =
-      params.retry match {
-        case (period, maxAttempts) =>
-          val scheduler: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
-            new ThreadFactory {
-              val defaultThreadFactory: ThreadFactory = Executors.defaultThreadFactory()
+    val (period, maxAttempts) = params.retry
+    val finalTask: Either[ResolutionError, Resolution] = {
+      val scheduler: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+        new ThreadFactory {
+          val defaultThreadFactory: ThreadFactory = Executors.defaultThreadFactory()
 
-              def newThread(r: Runnable): Thread = {
-                val t = defaultThreadFactory.newThread(r)
-                t.setDaemon(true)
-                t.setName("retry-handler")
-                t
-              }
-            }
-          )
-          implicit val ec: ExecutionContext = resolveTask.cache.ec
-
-          def retry(attempt: Int): Future[Either[ResolutionError, Resolution]] = {
-            val resolveResult: Future[Either[ResolutionError, Resolution]] =
-              resolveTask
-                .io
-                .map(Right(_))
-                .handle { case ex: ResolutionError => Left(ex) }
-                .future()(resolveTask.cache.ec)
-                .flatMap {
-                  case Left(e: ResolutionError) =>
-                    val isCantDownload = e.errors.exists(_.isInstanceOf[CantDownloadModule])
-                    //should not retry in case "not found" error thrown
-                    def isNotFound = e.errors.exists(isNotFoundError(_))
-                    if (isCantDownload && !isNotFound)
-                      retryOnFailure(maxAttempts, retry, attempt, Some(e), e, e.resolution, period, scheduler)
-                    else
-                      Future.successful(Left(e))
-                  case Right(res) =>
-                    Future.successful(Right(res))
-                }
-                .recoverWith {
-                  case NonFatal(ex) =>
-                    retryOnFailure(maxAttempts, retry, attempt, None, ex, Resolution.empty, period, scheduler)
-                }
-            resolveResult
+          def newThread(r: Runnable): Thread = {
+            val t = defaultThreadFactory.newThread(r)
+            t.setDaemon(true)
+            t.setName("retry-handler")
+            t
           }
+        }
+      )
+      implicit val ec: ExecutionContext = resolveTask.cache.ec
 
-          Await.result(retry(1), Duration.Inf)
+      def retry(attempt: Int): Future[Either[ResolutionError, Resolution]] = {
+        val resolveResult: Future[Either[ResolutionError, Resolution]] =
+          resolveTask
+            .io
+            .map(Right(_))
+            .handle { case ex: ResolutionError => Left(ex) }
+            .future()(resolveTask.cache.ec)
+            .flatMap {
+              case Left(e: ResolutionError) =>
+                val isCantDownload = e.errors.exists(_.isInstanceOf[CantDownloadModule])
+                //should not retry in case "not found" error thrown
+                def isNotFound = e.errors.exists(isNotFoundError(_))
+                if (isCantDownload && !isNotFound)
+                  retryOnFailure(maxAttempts, retry, attempt, Some(e), e, e.resolution, period, scheduler)
+                else
+                  Future.successful(Left(e))
+              case Right(res) =>
+                Future.successful(Right(res))
+            }
+            .recoverWith {
+              case NonFatal(ex) =>
+                retryOnFailure(maxAttempts, retry, attempt, None, ex, Resolution.empty, period, scheduler)
+            }
+        resolveResult
       }
+
+      Await.result(retry(1), Duration.Inf)
+    }
 
     finalTask match {
       case Left(err) if params.missingOk => Right(err.resolution)
