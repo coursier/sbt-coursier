@@ -130,21 +130,18 @@ object ResolutionRun {
       maxAttempts: Int,
       retry: Int => Future[Either[ResolutionError, Resolution]],
       attempt: Int,
-      resolutionError: Option[ResolutionError],
-      exception: Throwable,
-      resolution: Resolution,
+      resolutionError: ResolutionError,
       period: FiniteDuration,
       scheduler: ScheduledExecutorService
     )(implicit
       ec: ExecutionContext
     ): Future[Either[ResolutionError, Resolution]] =
       if (attempt >= maxAttempts) {
-        val ex = resolutionError.getOrElse(new ResolutionError.MaximumIterationReached(resolution))
         log.error(s"Failed, maximum iterations ($maxAttempts) reached")
-        Future.successful(Left(ex))
+        Future.successful(Left(resolutionError))
       }
       else {
-        log.info(s"Attempt $attempt failed: ${resolutionError.map(_.toString).getOrElse(exception.toString)}")
+        log.info(s"Attempt $attempt failed: $resolutionError")
 
         // Backoff retry
         val timeToWait = (period * Math.pow(2, attempt)) match {
@@ -185,15 +182,11 @@ object ResolutionRun {
               //should not retry in case "not found" error thrown
               def isNotFound = e.errors.exists(isNotFoundError(_))
               if (isCantDownload && !isNotFound)
-                retryOnFailure(maxAttempts, retry, attempt, Some(e), e, e.resolution, period, scheduler)
+                retryOnFailure(maxAttempts, retry, attempt, e, period, scheduler)
               else
                 Future.successful(Left(e))
             case Right(res) =>
               Future.successful(Right(res))
-          }
-          .recoverWith {
-            case NonFatal(ex) =>
-              retryOnFailure(maxAttempts, retry, attempt, None, ex, Resolution.empty, period, scheduler)
           }
 
       Await.result(retry(1), Duration.Inf)
