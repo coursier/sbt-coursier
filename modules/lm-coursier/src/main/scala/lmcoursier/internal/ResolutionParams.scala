@@ -1,6 +1,7 @@
 package lmcoursier.internal
 
 import java.io.File
+
 import coursier.cache.{CacheLogger, FileCache}
 import coursier.ProjectCache
 import coursier.core._
@@ -8,6 +9,7 @@ import coursier.params.rule.Strict
 import lmcoursier.FallbackDependency
 import lmcoursier.definitions.ToCoursier
 import coursier.util.Task
+
 import scala.collection.mutable
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 

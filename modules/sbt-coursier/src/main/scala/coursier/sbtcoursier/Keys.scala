@@ -1,12 +1,14 @@
 package coursier.sbtcoursier
 
 import java.io.File
+
 import coursier.cache.CachePolicy
 import coursier.ProjectCache
-import coursier.core.*
+import coursier.core._
 import coursier.util.Artifact
 import sbt.librarymanagement.{GetClassifiersModule, Resolver}
 import sbt.{InputKey, SettingKey, TaskKey}
+
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
 object Keys {

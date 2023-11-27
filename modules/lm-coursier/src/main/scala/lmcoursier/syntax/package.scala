@@ -3,8 +3,9 @@ package lmcoursier
 import coursier.cache.CacheDefaults
 import lmcoursier.credentials._
 import lmcoursier.definitions._
-import sbt.librarymanagement.{CrossVersion, ModuleDescriptorConfiguration, ModuleID, ModuleInfo, Resolver, UpdateConfiguration}
+import sbt.librarymanagement.{Resolver, UpdateConfiguration, ModuleID, CrossVersion, ModuleInfo, ModuleDescriptorConfiguration}
 import xsbti.Logger
+
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import java.io.File
 import java.net.URL

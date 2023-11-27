@@ -1,7 +1,8 @@
 package coursier.sbtcoursiershared
 
 import java.io.File
-import coursier.Credentials as LegacyCredentials
+
+import coursier.{Credentials => LegacyCredentials}
 import lmcoursier.credentials.Credentials
 import lmcoursier.{CoursierDependencyResolution, FallbackDependency}
 import lmcoursier.definitions.{CacheLogger, Configuration, Project, Publication}

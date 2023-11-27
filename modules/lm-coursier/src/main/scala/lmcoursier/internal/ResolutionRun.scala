@@ -1,5 +1,6 @@
 package lmcoursier.internal
 
+import coursier.{Resolution, Resolve}
 import java.util.concurrent.{Executors, ScheduledExecutorService, ThreadFactory, TimeUnit}
 import coursier.cache.loggers.{FallbackRefreshDisplay, ProgressBarRefreshDisplay, RefreshLogger}
 import coursier.core._
@@ -9,8 +10,8 @@ import coursier.ivy.IvyRepository
 import coursier.maven.MavenRepositoryLike
 import coursier.params.rule.RuleResolution
 import coursier.util.Task
-import coursier.{Resolution, Resolve}
 import sbt.util.Logger
+
 import scala.collection.mutable
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{Await, ExecutionContext, Future}

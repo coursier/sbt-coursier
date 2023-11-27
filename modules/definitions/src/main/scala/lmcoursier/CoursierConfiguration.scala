@@ -1,12 +1,14 @@
 package lmcoursier
 
 import java.io.File
-import dataclass.{data, since}
+
+import dataclass.{ data, since }
 import coursier.cache.CacheDefaults
 import lmcoursier.credentials.Credentials
 import lmcoursier.definitions.{Authentication, CacheLogger, CachePolicy, FromCoursier, Module, ModuleMatchers, Project, Reconciliation, Strict}
-import sbt.librarymanagement.{CrossVersion, ModuleDescriptorConfiguration, ModuleID, ModuleInfo, Resolver, UpdateConfiguration}
+import sbt.librarymanagement.{Resolver, UpdateConfiguration, ModuleID, CrossVersion, ModuleInfo, ModuleDescriptorConfiguration}
 import xsbti.Logger
+
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import java.net.URL
 import java.net.URLClassLoader
