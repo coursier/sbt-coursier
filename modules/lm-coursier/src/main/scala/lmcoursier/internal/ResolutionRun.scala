@@ -175,7 +175,7 @@ object ResolutionRun {
           .io
           .map(Right(_))
           .handle { case ex: ResolutionError => Left(ex) }
-          .future()(resolveTask.cache.ec)
+          .future()
           .flatMap {
             case Left(e: ResolutionError) =>
               val isCantDownload = e.errors.exists(_.isInstanceOf[CantDownloadModule])
