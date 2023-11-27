@@ -154,12 +154,12 @@ object ResolutionRun {
               //should not retry in case "not found" error thrown
               def isNotFound = e.errors.exists(isNotFoundError(_))
               if (isCantDownload && !isNotFound) {
-                if (attempt >= maxAttempts) {
+                if (attempt + 1 >= maxAttempts) {
                   log.error(s"Failed, maximum iterations ($maxAttempts) reached")
                   Future.successful(Left(e))
                 }
                 else {
-                  log.info(s"Attempt $attempt failed: $e")
+                  log.warn(s"Attempt ${attempt + 1} failed: $e")
 
                   // Backoff retry
                   val timeToWait = (period * Math.pow(2, attempt)) match {
@@ -178,7 +178,7 @@ object ResolutionRun {
               Future.successful(Right(res))
           }
 
-      Await.result(retry(1), Duration.Inf)
+      Await.result(retry(0), Duration.Inf)
     }
 
     finalResult match {
