@@ -24,7 +24,7 @@ inThisBuild(List(
 Global / excludeLintKeys += scriptedBufferLog
 Global / excludeLintKeys += scriptedLaunchOpts
 
-def coursierVersion0 = "2.1.6"
+def coursierVersion0 = "2.1.8"
 def coursierDep = ("io.get-coursier" %% "coursier" % coursierVersion0)
   .exclude("org.codehaus.plexus", "plexus-archiver")
   .exclude("org.codehaus.plexus", "plexus-container-default")
@@ -174,7 +174,7 @@ lazy val `sbt-coursier-shared` = project
   .settings(
     plugin,
     generatePropertyFile,
-    libraryDependencies += "com.lihaoyi" %% "utest" % "0.8.1" % Test,
+    libraryDependencies += "com.lihaoyi" %% "utest" % "0.8.2" % Test,
     testFrameworks += new TestFramework("utest.runner.Framework")
   )
 
