@@ -126,34 +126,6 @@ object ResolutionRun {
         )
     }
 
-    def retryOnFailure(
-      maxAttempts: Int,
-      retry: Int => Future[Either[ResolutionError, Resolution]],
-      attempt: Int,
-      resolutionError: ResolutionError,
-      period: FiniteDuration,
-      scheduler: ScheduledExecutorService
-    )(implicit
-      ec: ExecutionContext
-    ): Future[Either[ResolutionError, Resolution]] =
-      if (attempt >= maxAttempts) {
-        log.error(s"Failed, maximum iterations ($maxAttempts) reached")
-        Future.successful(Left(resolutionError))
-      }
-      else {
-        log.info(s"Attempt $attempt failed: $resolutionError")
-
-        // Backoff retry
-        val timeToWait = (period * Math.pow(2, attempt)) match {
-          case f: FiniteDuration => f
-          case _: Duration       => sys.error("Cannot happen")
-        }
-        val delay: Future[Unit] = Task.completeAfter(scheduler, timeToWait).future()
-        delay.flatMap { _ =>
-          retry(attempt + 1)
-        }
-      }
-
     val (period, maxAttempts) = params.retry
     val finalResult: Either[ResolutionError, Resolution] = {
       val scheduler: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
@@ -181,8 +153,25 @@ object ResolutionRun {
               val isCantDownload = e.errors.exists(_.isInstanceOf[CantDownloadModule])
               //should not retry in case "not found" error thrown
               def isNotFound = e.errors.exists(isNotFoundError(_))
-              if (isCantDownload && !isNotFound)
-                retryOnFailure(maxAttempts, retry, attempt, e, period, scheduler)
+              if (isCantDownload && !isNotFound) {
+                if (attempt >= maxAttempts) {
+                  log.error(s"Failed, maximum iterations ($maxAttempts) reached")
+                  Future.successful(Left(e))
+                }
+                else {
+                  log.info(s"Attempt $attempt failed: $e")
+
+                  // Backoff retry
+                  val timeToWait = (period * Math.pow(2, attempt)) match {
+                    case f: FiniteDuration => f
+                    case _: Duration       => sys.error("Cannot happen")
+                  }
+                  val delay: Future[Unit] = Task.completeAfter(scheduler, timeToWait).future()
+                  delay.flatMap { _ =>
+                    retry(attempt + 1)
+                  }
+                }
+              }
               else
                 Future.successful(Left(e))
             case Right(res) =>
