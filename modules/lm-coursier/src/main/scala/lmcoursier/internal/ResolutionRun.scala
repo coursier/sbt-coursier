@@ -12,8 +12,8 @@ import coursier.params.rule.RuleResolution
 import coursier.util.Task
 import sbt.util.Logger
 
-import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
+import scala.collection.mutable
 
 // private[coursier]
 object ResolutionRun {
