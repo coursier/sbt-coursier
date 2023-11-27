@@ -158,7 +158,7 @@ object ResolutionRun {
       }
 
     val (period, maxAttempts) = params.retry
-    val finalTask: Either[ResolutionError, Resolution] = {
+    val finalResult: Either[ResolutionError, Resolution] = {
       val scheduler: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactory {
           val defaultThreadFactory: ThreadFactory = Executors.defaultThreadFactory()
@@ -199,7 +199,7 @@ object ResolutionRun {
       Await.result(retry(1), Duration.Inf)
     }
 
-    finalTask match {
+    finalResult match {
       case Left(err) if params.missingOk => Right(err.resolution)
       case others => others
     }
