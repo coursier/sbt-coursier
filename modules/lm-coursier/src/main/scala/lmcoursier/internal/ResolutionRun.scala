@@ -5,7 +5,7 @@ import coursier.cache.internal.ThreadUtil
 import coursier.cache.loggers.{FallbackRefreshDisplay, ProgressBarRefreshDisplay, RefreshLogger}
 import coursier.core._
 import coursier.error.ResolutionError
-import coursier.error.ResolutionError.{CantDownloadModule, Several, Simple}
+import coursier.error.ResolutionError.CantDownloadModule
 import coursier.ivy.IvyRepository
 import coursier.maven.MavenRepositoryLike
 import coursier.params.rule.RuleResolution
@@ -127,7 +127,7 @@ object ResolutionRun {
     val (period, maxAttempts) = params.retry
     val finalResult: Either[ResolutionError, Resolution] = {
 
-      def retry(attempt: Int, timeToWait: FiniteDuration): Task[Either[ResolutionError, Resolution]] =
+      def retry(attempt: Int, waitOnError: FiniteDuration): Task[Either[ResolutionError, Resolution]] =
         resolveTask
           .io
           .attempt
@@ -144,8 +144,8 @@ object ResolutionRun {
                 }
                 else {
                   log.warn(s"Attempt ${attempt + 1} failed: $e")
-                  Task.completeAfter(retryScheduler, timeToWait).flatMap { _ =>
-                    retry(attempt + 1, timeToWait * 2)
+                  Task.completeAfter(retryScheduler, waitOnError).flatMap { _ =>
+                    retry(attempt + 1, waitOnError * 2)
                   }
                 }
               else
