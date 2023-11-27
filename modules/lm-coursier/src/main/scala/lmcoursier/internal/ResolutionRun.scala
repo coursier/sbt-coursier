@@ -142,7 +142,7 @@ object ResolutionRun {
       )
       implicit val ec: ExecutionContext = resolveTask.cache.ec
 
-      def retry(attempt: Int): Future[Either[ResolutionError, Resolution]] =
+      def retry(attempt: Int, timeToWait: FiniteDuration): Future[Either[ResolutionError, Resolution]] =
         resolveTask
           .io
           .map(Right(_))
@@ -160,15 +160,9 @@ object ResolutionRun {
                 }
                 else {
                   log.warn(s"Attempt ${attempt + 1} failed: $e")
-
-                  // Backoff retry
-                  val timeToWait = (period * Math.pow(2, attempt)) match {
-                    case f: FiniteDuration => f
-                    case _: Duration       => sys.error("Cannot happen")
-                  }
                   val delay: Future[Unit] = Task.completeAfter(scheduler, timeToWait).future()
                   delay.flatMap { _ =>
-                    retry(attempt + 1)
+                    retry(attempt + 1, timeToWait * 2)
                   }
                 }
               }
@@ -178,7 +172,7 @@ object ResolutionRun {
               Future.successful(Right(res))
           }
 
-      Await.result(retry(0), Duration.Inf)
+      Await.result(retry(0, period), Duration.Inf)
     }
 
     finalResult match {
