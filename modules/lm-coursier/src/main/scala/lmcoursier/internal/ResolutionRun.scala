@@ -145,10 +145,11 @@ object ResolutionRun {
           .attempt
           .flatMap {
             case Left(e: ResolutionError) =>
-              val isCantDownload = e.errors.exists(_.isInstanceOf[CantDownloadModule])
-              //should not retry in case "not found" error thrown
-              def isNotFound = e.errors.exists(_.getMessage.toLowerCase().contains("not found"))
-              if (isCantDownload && !isNotFound) {
+              val hasConnectionTimeouts = e.errors.exists {
+                case err: CantDownloadModule => err.perRepositoryErrors.exists(_.contains("Connection timed out"))
+                case _                       => false
+              }
+              if (hasConnectionTimeouts)
                 if (attempt + 1 >= maxAttempts) {
                   log.error(s"Failed, maximum iterations ($maxAttempts) reached")
                   Task.point(Left(e))
@@ -159,7 +160,6 @@ object ResolutionRun {
                     retry(attempt + 1, timeToWait * 2)
                   }
                 }
-              }
               else
                 Task.point(Left(e))
             case Left(ex) =>
