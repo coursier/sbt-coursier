@@ -147,7 +147,7 @@ object ResolutionRun {
             case Left(e: ResolutionError) =>
               val isCantDownload = e.errors.exists(_.isInstanceOf[CantDownloadModule])
               //should not retry in case "not found" error thrown
-              def isNotFound = e.errors.exists(isNotFoundError(_))
+              def isNotFound = e.errors.exists(_.getMessage.toLowerCase().contains("not found"))
               if (isCantDownload && !isNotFound) {
                 if (attempt + 1 >= maxAttempts) {
                   log.error(s"Failed, maximum iterations ($maxAttempts) reached")
@@ -219,7 +219,4 @@ object ResolutionRun {
     }
   }
 
-  private def isNotFoundError(resolutionError: ResolutionError): Boolean = {
-    resolutionError.getMessage.toLowerCase().contains("not found")
-  }
 }
