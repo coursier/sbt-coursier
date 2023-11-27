@@ -137,16 +137,7 @@ object ResolutionRun {
       scheduler: ScheduledExecutorService
     )(implicit
       ec: ExecutionContext
-    ): Future[Either[ResolutionError, Resolution]] = {
-      // Backoff retry
-      def delay(attempt: Int): Future[Unit] = {
-        val timeToWait = (period * Math.pow(2, attempt)) match {
-          case f: FiniteDuration => f
-          case _: Duration       => sys.error("Cannot happen")
-        }
-        Task.completeAfter(scheduler, timeToWait).future()
-      }
-
+    ): Future[Either[ResolutionError, Resolution]] =
       if (attempt >= maxAttempts) {
         val ex = resolutionError.getOrElse(new ResolutionError.MaximumIterationReached(resolution))
         log.error(s"Failed, maximum iterations ($maxAttempts) reached")
@@ -154,11 +145,17 @@ object ResolutionRun {
       }
       else {
         log.info(s"Attempt $attempt failed: ${resolutionError.map(_.toString).getOrElse(exception.toString)}")
-        delay(attempt).flatMap { _ =>
+
+        // Backoff retry
+        val timeToWait = (period * Math.pow(2, attempt)) match {
+          case f: FiniteDuration => f
+          case _: Duration       => sys.error("Cannot happen")
+        }
+        val delay: Future[Unit] = Task.completeAfter(scheduler, timeToWait).future()
+        delay.flatMap { _ =>
           retry(attempt + 1)
         }
       }
-    }
 
     val (period, maxAttempts) = params.retry
     val finalTask: Either[ResolutionError, Resolution] = {
