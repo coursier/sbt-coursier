@@ -13,9 +13,7 @@ import coursier.util.Task
 import sbt.util.Logger
 
 import scala.collection.mutable
-import scala.concurrent.duration.{Duration, FiniteDuration}
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.util.control.NonFatal
+import scala.concurrent.duration.FiniteDuration
 
 // private[coursier]
 object ResolutionRun {
@@ -140,14 +138,11 @@ object ResolutionRun {
           }
         }
       )
-      implicit val ec: ExecutionContext = resolveTask.cache.ec
 
-      def retry(attempt: Int, timeToWait: FiniteDuration): Future[Either[ResolutionError, Resolution]] =
+      def retry(attempt: Int, timeToWait: FiniteDuration): Task[Either[ResolutionError, Resolution]] =
         resolveTask
           .io
-          .map(Right(_))
-          .handle { case ex: ResolutionError => Left(ex) }
-          .future()
+          .attempt
           .flatMap {
             case Left(e: ResolutionError) =>
               val isCantDownload = e.errors.exists(_.isInstanceOf[CantDownloadModule])
@@ -156,23 +151,24 @@ object ResolutionRun {
               if (isCantDownload && !isNotFound) {
                 if (attempt + 1 >= maxAttempts) {
                   log.error(s"Failed, maximum iterations ($maxAttempts) reached")
-                  Future.successful(Left(e))
+                  Task.point(Left(e))
                 }
                 else {
                   log.warn(s"Attempt ${attempt + 1} failed: $e")
-                  val delay: Future[Unit] = Task.completeAfter(scheduler, timeToWait).future()
-                  delay.flatMap { _ =>
+                  Task.completeAfter(scheduler, timeToWait).flatMap { _ =>
                     retry(attempt + 1, timeToWait * 2)
                   }
                 }
               }
               else
-                Future.successful(Left(e))
-            case Right(res) =>
-              Future.successful(Right(res))
+                Task.point(Left(e))
+            case Left(ex) =>
+              Task.fail(ex)
+            case Right(value) =>
+              Task.point(Right(value))
           }
 
-      Await.result(retry(0, period), Duration.Inf)
+      retry(0, period).unsafeRun()(resolveTask.cache.ec)
     }
 
     finalResult match {
