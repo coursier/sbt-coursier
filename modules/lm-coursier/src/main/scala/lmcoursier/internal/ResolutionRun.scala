@@ -1,7 +1,7 @@
 package lmcoursier.internal
 
 import coursier.{Resolution, Resolve}
-import java.util.concurrent.{Executors, ScheduledExecutorService, ThreadFactory}
+import coursier.cache.internal.ThreadUtil
 import coursier.cache.loggers.{FallbackRefreshDisplay, ProgressBarRefreshDisplay, RefreshLogger}
 import coursier.core._
 import coursier.error.ResolutionError
@@ -126,18 +126,6 @@ object ResolutionRun {
 
     val (period, maxAttempts) = params.retry
     val finalResult: Either[ResolutionError, Resolution] = {
-      val scheduler: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
-        new ThreadFactory {
-          val defaultThreadFactory: ThreadFactory = Executors.defaultThreadFactory()
-
-          def newThread(r: Runnable): Thread = {
-            val t = defaultThreadFactory.newThread(r)
-            t.setDaemon(true)
-            t.setName("retry-handler")
-            t
-          }
-        }
-      )
 
       def retry(attempt: Int, timeToWait: FiniteDuration): Task[Either[ResolutionError, Resolution]] =
         resolveTask
@@ -156,7 +144,7 @@ object ResolutionRun {
                 }
                 else {
                   log.warn(s"Attempt ${attempt + 1} failed: $e")
-                  Task.completeAfter(scheduler, timeToWait).flatMap { _ =>
+                  Task.completeAfter(retryScheduler, timeToWait).flatMap { _ =>
                     retry(attempt + 1, timeToWait * 2)
                   }
                 }
@@ -219,4 +207,5 @@ object ResolutionRun {
     }
   }
 
+  private lazy val retryScheduler = ThreadUtil.fixedScheduledThreadPool(1)
 }
