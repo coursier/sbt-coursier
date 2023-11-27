@@ -176,31 +176,28 @@ object ResolutionRun {
       )
       implicit val ec: ExecutionContext = resolveTask.cache.ec
 
-      def retry(attempt: Int): Future[Either[ResolutionError, Resolution]] = {
-        val resolveResult: Future[Either[ResolutionError, Resolution]] =
-          resolveTask
-            .io
-            .map(Right(_))
-            .handle { case ex: ResolutionError => Left(ex) }
-            .future()(resolveTask.cache.ec)
-            .flatMap {
-              case Left(e: ResolutionError) =>
-                val isCantDownload = e.errors.exists(_.isInstanceOf[CantDownloadModule])
-                //should not retry in case "not found" error thrown
-                def isNotFound = e.errors.exists(isNotFoundError(_))
-                if (isCantDownload && !isNotFound)
-                  retryOnFailure(maxAttempts, retry, attempt, Some(e), e, e.resolution, period, scheduler)
-                else
-                  Future.successful(Left(e))
-              case Right(res) =>
-                Future.successful(Right(res))
-            }
-            .recoverWith {
-              case NonFatal(ex) =>
-                retryOnFailure(maxAttempts, retry, attempt, None, ex, Resolution.empty, period, scheduler)
-            }
-        resolveResult
-      }
+      def retry(attempt: Int): Future[Either[ResolutionError, Resolution]] =
+        resolveTask
+          .io
+          .map(Right(_))
+          .handle { case ex: ResolutionError => Left(ex) }
+          .future()(resolveTask.cache.ec)
+          .flatMap {
+            case Left(e: ResolutionError) =>
+              val isCantDownload = e.errors.exists(_.isInstanceOf[CantDownloadModule])
+              //should not retry in case "not found" error thrown
+              def isNotFound = e.errors.exists(isNotFoundError(_))
+              if (isCantDownload && !isNotFound)
+                retryOnFailure(maxAttempts, retry, attempt, Some(e), e, e.resolution, period, scheduler)
+              else
+                Future.successful(Left(e))
+            case Right(res) =>
+              Future.successful(Right(res))
+          }
+          .recoverWith {
+            case NonFatal(ex) =>
+              retryOnFailure(maxAttempts, retry, attempt, None, ex, Resolution.empty, period, scheduler)
+          }
 
       Await.result(retry(1), Duration.Inf)
     }
