@@ -69,6 +69,8 @@ object Foo {
         ewo = evictionOptions,
         mavenStyle = publishMavenStyle.value,
         compatWarning = compatibilityWarningOptions.value,
+        includeCallers = false,
+        includeDetails = false,
         log = s.log
       )
     } catch {
@@ -92,8 +94,6 @@ object Foo {
             ewo: EvictionWarningOptions,
             mavenStyle: Boolean,
             compatWarning: CompatibilityWarningOptions,
-            includeCallers: Boolean,
-            includeDetails: Boolean,
             log: Logger
           ): UpdateReport
         }].cachedUpdate(
@@ -112,8 +112,6 @@ object Foo {
           ewo = evictionOptions,
           mavenStyle = publishMavenStyle.value,
           compatWarning = compatibilityWarningOptions.value,
-          includeCallers = false,
-          includeDetails = false,
           log = s.log
         )
     }
