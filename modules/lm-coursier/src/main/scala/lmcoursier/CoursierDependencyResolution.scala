@@ -1,7 +1,7 @@
 package lmcoursier
 
 import java.io.File
-import java.net.{URL, URLClassLoader, URLConnection, MalformedURLException}
+import java.net.{URI, URLClassLoader}
 
 import coursier.{Organization, Resolution, organizationString}
 import coursier.core.{Classifier, Configuration}
@@ -44,7 +44,7 @@ class CoursierDependencyResolution(
     val conf0 = protocolHandlerConfiguration.getOrElse(conf)
 
     def isUnknownProtocol(rawURL: String): Boolean = {
-      Try(new URL(rawURL)) match {
+      Try(new URI(rawURL).toURL) match {
         case Failure(ex) if ex.getMessage.startsWith("unknown protocol: ") => true
         case _ => false
       }
