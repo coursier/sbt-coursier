@@ -1,7 +1,7 @@
 
 import Settings._
 
-def dataclassScalafixV = "0.1.0"
+def dataclassScalafixV = "0.2.0"
 
 inThisBuild(List(
   organization := "io.get-coursier",
