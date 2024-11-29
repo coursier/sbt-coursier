@@ -24,7 +24,7 @@ inThisBuild(List(
 Global / excludeLintKeys += scriptedBufferLog
 Global / excludeLintKeys += scriptedLaunchOpts
 
-def coursierVersion0 = "2.1.16"
+def coursierVersion0 = "2.1.19"
 def coursierDep = ("io.get-coursier" %% "coursier" % coursierVersion0)
   .exclude("org.codehaus.plexus", "plexus-archiver")
   .exclude("org.codehaus.plexus", "plexus-container-default")
@@ -134,6 +134,7 @@ lazy val `lm-coursier-shaded` = project
     shadingRules ++= {
       val toShade = Seq(
         "coursier",
+        "dependency",
         "org.fusesource",
         "macrocompat",
         "io.github.alexarchambault.windowsansi",
