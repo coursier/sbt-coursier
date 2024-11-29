@@ -7,4 +7,4 @@ coursierCredentials += "authenticated" -> coursier.Credentials(
   sys.env("TEST_REPOSITORY_PASSWORD")
 )
 
-libraryDependencies += "com.abc" % "test" % "0.1"
+libraryDependencies += ("com.abc" % "test" % "0.1").intransitive()

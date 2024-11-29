@@ -17,4 +17,4 @@ coursierExtraCredentials += {
   lmcoursier.credentials.Credentials(dest)
 }
 
-libraryDependencies += "com.abc" % "test" % "0.1"
+libraryDependencies += ("com.abc" % "test" % "0.1").intransitive()
