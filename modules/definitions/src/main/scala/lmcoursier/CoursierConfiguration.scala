@@ -61,4 +61,6 @@ import java.net.URLClassLoader
   protocolHandlerDependencies: Seq[ModuleID] = Vector.empty,
   retry: Option[(FiniteDuration, Int)] = None,
   sameVersions: Seq[Set[InclExclRule]] = Nil,
+  @since
+  enableDependencyOverrides: Option[Boolean] = None,
 )

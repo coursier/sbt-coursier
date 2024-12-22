@@ -249,6 +249,7 @@ class CoursierDependencyResolution(
         .withMaxIterations(conf.maxIterations)
         .withProfiles(conf.mavenProfiles.toSet)
         .withForceVersion(conf.forceVersions.map { case (k, v) => (ToCoursier.module(k), v) }.toMap)
+        .withEnableDependencyOverrides(conf.enableDependencyOverrides)
         .withTypelevel(typelevel)
         .withReconciliation(ToCoursier.reconciliation(conf.reconciliation))
         .withExclusions(excludeDependencies)
