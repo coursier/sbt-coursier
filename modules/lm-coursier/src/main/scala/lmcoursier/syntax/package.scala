@@ -76,6 +76,7 @@ package object syntax {
         protocolHandlerDependencies = Vector.empty,
         retry = None,
         sameVersions = Nil,
+        enableDependencyOverrides = None,
       )
   }
 
@@ -112,6 +113,8 @@ package object syntax {
 
     def withRetry(retry: (FiniteDuration, Int)): CoursierConfiguration =
       value.withRetry(Some((retry._1, retry._2)))
+    def withEnableDependencyOverrides(enable: Boolean): CoursierConfiguration =
+      value.withEnableDependencyOverrides(Some(enable))
   }
 
   implicit class PublicationOp(value: Publication) {
