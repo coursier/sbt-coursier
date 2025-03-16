@@ -11,6 +11,7 @@ import coursier.sbtcoursier.Keys._
 import coursier.sbtcoursiershared.InputsTasks.{credentialsTask, strictTask}
 import coursier.sbtcoursiershared.SbtCoursierShared.autoImport._
 import coursier.util.{ModuleMatcher, ModuleMatchers}
+import coursier.version.ConstraintReconciliation
 import sbt.Def
 import sbt.Keys._
 
@@ -80,7 +81,7 @@ object ResolutionTasks {
 
       val userEnabledProfiles = mavenProfiles.value
       val versionReconciliations0 = versionReconciliation.value.map { mod =>
-        Reconciliation(mod.revision) match {
+        ConstraintReconciliation(mod.revision) match {
           case Some(rec) =>
             val (mod0, _) = FromSbt.moduleVersion(mod, sv, sbv)
             val matcher = ModuleMatchers.only(Organization(mod0.organization.value), ModuleName(mod0.name.value))
