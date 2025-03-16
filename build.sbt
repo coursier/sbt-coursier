@@ -16,7 +16,7 @@ inThisBuild(List(
     )
   ),
   semanticdbEnabled := true,
-  semanticdbVersion := "4.9.8",
+  semanticdbVersion := "4.13.4",
   scalafixDependencies += "net.hamnaberg" %% "dataclass-scalafix" % dataclassScalafixV,
   libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % "always"
 ))
