@@ -130,6 +130,7 @@ lazy val `lm-coursier-shaded` = project
       "licenses/javolution.license.TXT",
       "licenses/thoughtworks.TXT",
       "licenses/",
+      "pipes-fork-server-default-log4j2.xml",
     ),
     shadingRules ++= {
       val toShade = Seq(
@@ -137,12 +138,14 @@ lazy val `lm-coursier-shaded` = project
         "dependency",
         "org.fusesource",
         "macrocompat",
+        "io.github.alexarchambault.isterminal",
         "io.github.alexarchambault.windowsansi",
         "concurrentrefhashmap",
         // pulled by the plexus-archiver stuff that coursier-cache
         // depends on for now… can hopefully be removed in the future
         "com.google.common",
         "org.apache.commons",
+        "org.apache.tika",
         "org.apache.xbean",
         "org.codehaus",
         "org.iq80",
