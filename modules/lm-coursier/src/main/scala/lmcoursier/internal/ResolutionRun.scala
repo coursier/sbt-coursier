@@ -14,6 +14,7 @@ import sbt.util.Logger
 
 import scala.concurrent.duration.FiniteDuration
 import scala.collection.mutable
+import java.nio.channels.OverlappingFileLockException
 
 // private[coursier]
 object ResolutionRun {
@@ -150,6 +151,15 @@ object ResolutionRun {
                 }
               else
                 Task.point(Left(e))
+            case Left(e: OverlappingFileLockException) =>
+              if (attempt + 1 >= maxAttempts) {
+                log.error(s"Failed, maximum iterations ($maxAttempts) reached")
+                Task.fail(e)
+              }
+              else
+                Task.completeAfter(retryScheduler, waitOnError).flatMap { _ =>
+                  retry(attempt + 1, waitOnError * 2)
+                }
             case Left(ex) =>
               Task.fail(ex)
             case Right(value) =>
