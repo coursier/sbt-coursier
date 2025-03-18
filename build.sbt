@@ -16,7 +16,7 @@ inThisBuild(List(
     )
   ),
   semanticdbEnabled := true,
-  semanticdbVersion := "4.9.8",
+  semanticdbVersion := "4.13.4",
   scalafixDependencies += "net.hamnaberg" %% "dataclass-scalafix" % dataclassScalafixV,
   libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % "always"
 ))
@@ -24,7 +24,7 @@ inThisBuild(List(
 Global / excludeLintKeys += scriptedBufferLog
 Global / excludeLintKeys += scriptedLaunchOpts
 
-def coursierVersion0 = "2.1.23"
+def coursierVersion0 = "2.1.25-M3"
 def coursierDep = ("io.get-coursier" %% "coursier" % coursierVersion0)
   .exclude("org.codehaus.plexus", "plexus-archiver")
   .exclude("org.codehaus.plexus", "plexus-container-default")
@@ -130,6 +130,7 @@ lazy val `lm-coursier-shaded` = project
       "licenses/javolution.license.TXT",
       "licenses/thoughtworks.TXT",
       "licenses/",
+      "pipes-fork-server-default-log4j2.xml",
     ),
     shadingRules ++= {
       val toShade = Seq(
@@ -137,12 +138,14 @@ lazy val `lm-coursier-shaded` = project
         "dependency",
         "org.fusesource",
         "macrocompat",
+        "io.github.alexarchambault.isterminal",
         "io.github.alexarchambault.windowsansi",
         "concurrentrefhashmap",
         // pulled by the plexus-archiver stuff that coursier-cache
         // depends on for now… can hopefully be removed in the future
         "com.google.common",
         "org.apache.commons",
+        "org.apache.tika",
         "org.apache.xbean",
         "org.codehaus",
         "org.iq80",
