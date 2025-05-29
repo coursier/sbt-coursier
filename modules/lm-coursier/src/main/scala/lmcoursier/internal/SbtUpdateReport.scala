@@ -1,9 +1,9 @@
 package lmcoursier.internal
 
 import java.io.File
+import java.lang.ref.WeakReference
 import java.net.URL
-import java.util.GregorianCalendar
-import java.util.concurrent.ConcurrentHashMap
+import java.util.{Collections, GregorianCalendar, WeakHashMap}
 import coursier.cache.CacheUrl
 import coursier.{Attributes, Dependency, Module, Project, Resolution}
 import coursier.core.{Classifier, Configuration, Extension, Info, Publication, Type}
@@ -17,17 +17,16 @@ import scala.annotation.tailrec
 private[internal] object SbtUpdateReport {
 
   private def caching[K, V](f: K => V): K => V = {
-
-    val cache = new ConcurrentHashMap[K, V]
+    val cache = Collections.synchronizedMap(new WeakHashMap[K, WeakReference[V]])
 
     key =>
       val previousValueOpt = Option(cache.get(key))
 
-      previousValueOpt.getOrElse {
+      previousValueOpt.fold {
         val value = f(key)
-        val concurrentValueOpt = Option(cache.putIfAbsent(key, value))
-        concurrentValueOpt.getOrElse(value)
-      }
+        val concurrentValueOpt = Option(cache.putIfAbsent(key, new WeakReference(value)))
+        concurrentValueOpt.fold(value)(_.get())
+      }(_.get())
   }
 
   private def infoProperties(project: Project): Seq[(String, String)] =
