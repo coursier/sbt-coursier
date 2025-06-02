@@ -158,7 +158,7 @@ final class TemporaryInMemoryRepository private(
             if (TemporaryInMemoryRepository.exists(url, localArtifactsShouldBeCached, cacheOpt)) {
               val proj = Project(
                 module,
-                version,
+                coursier.version.Version(version),
                 Nil,
                 Map.empty,
                 None,
@@ -171,7 +171,10 @@ final class TemporaryInMemoryRepository private(
                 relocated = false,
                 None,
                 Nil,
-                Info.empty
+                Info.empty,
+                Overrides.empty,
+                Map.empty,
+                Map.empty,
               )
 
               Right((this, proj))
