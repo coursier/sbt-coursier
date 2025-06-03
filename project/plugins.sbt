@@ -1,4 +1,4 @@
-addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.9.3")
+addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.11.1")
 addSbtPlugin("com.typesafe" % "sbt-mima-plugin" % "1.1.4")
 addSbtPlugin("io.get-coursier" % "sbt-shading" % "2.1.5")
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.14.3")
