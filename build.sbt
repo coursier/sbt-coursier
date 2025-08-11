@@ -24,7 +24,7 @@ inThisBuild(List(
 Global / excludeLintKeys += scriptedBufferLog
 Global / excludeLintKeys += scriptedLaunchOpts
 
-def coursierVersion0 = "2.1.23"
+def coursierVersion0 = "2.1.25-M16"
 def coursierDep = ("io.get-coursier" %% "coursier" % coursierVersion0)
   .exclude("org.codehaus.plexus", "plexus-archiver")
   .exclude("org.codehaus.plexus", "plexus-container-default")
@@ -137,12 +137,14 @@ lazy val `lm-coursier-shaded` = project
         "dependency",
         "org.fusesource",
         "macrocompat",
+        "io.github.alexarchambault.isterminal",
         "io.github.alexarchambault.windowsansi",
         "concurrentrefhashmap",
         // pulled by the plexus-archiver stuff that coursier-cache
         // depends on for now… can hopefully be removed in the future
         "com.google.common",
         "org.apache.commons",
+        "org.apache.tika",
         "org.apache.xbean",
         "org.codehaus",
         "org.iq80",
