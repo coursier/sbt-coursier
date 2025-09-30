@@ -16,7 +16,7 @@ inThisBuild(List(
     )
   ),
   semanticdbEnabled := true,
-  semanticdbVersion := "4.9.8",
+  semanticdbVersion := "4.13.10",
   scalafixDependencies += "net.hamnaberg" %% "dataclass-scalafix" % dataclassScalafixV,
   libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % "always"
 ))
@@ -24,7 +24,7 @@ inThisBuild(List(
 Global / excludeLintKeys += scriptedBufferLog
 Global / excludeLintKeys += scriptedLaunchOpts
 
-def coursierVersion0 = "2.1.25-M16"
+def coursierVersion0 = "2.1.25-M19"
 def coursierDep = ("io.get-coursier" %% "coursier" % coursierVersion0)
   .exclude("org.codehaus.plexus", "plexus-archiver")
   .exclude("org.codehaus.plexus", "plexus-container-default")
