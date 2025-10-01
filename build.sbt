@@ -178,7 +178,8 @@ lazy val `sbt-coursier-shared` = project
     plugin,
     generatePropertyFile,
     libraryDependencies += "com.lihaoyi" %% "utest" % "0.9.1" % Test,
-    testFrameworks += new TestFramework("utest.runner.Framework")
+    testFrameworks += new TestFramework("utest.runner.Framework"),
+    dontPublish
   )
 
 lazy val `sbt-coursier-shared-shaded` = project
@@ -223,7 +224,8 @@ lazy val `sbt-coursier` = project
       // (but shouldn't scripted itself handle that…?)
       (`lm-coursier` / publishLocal).value
       (`sbt-coursier-shared` / publishLocal).value
-    }
+    },
+    dontPublish
   )
 
 lazy val customProtocolForTest212 = project
