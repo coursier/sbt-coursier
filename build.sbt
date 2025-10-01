@@ -61,7 +61,7 @@ lazy val definitions = project
   .disablePlugins(MimaPlugin)
   .settings(
     shared,
-    crossScalaVersions := Seq(scala212, scala213),
+    crossScalaVersions := Seq(scala212),
     libraryDependencies ++= Seq(
       coursierDep,
       "net.hamnaberg" %% "dataclass-annotation" % dataclassScalafixV % Provided,
@@ -78,7 +78,7 @@ lazy val `lm-coursier` = project
   .in(file("modules/lm-coursier"))
   .settings(
     shared,
-    crossScalaVersions := Seq(scala212, scala213),
+    crossScalaVersions := Seq(scala212),
     Mima.settings,
     Mima.lmCoursierFilters,
     libraryDependencies ++= Seq(
@@ -111,7 +111,7 @@ lazy val `lm-coursier-shaded` = project
   .enablePlugins(ShadingPlugin)
   .settings(
     shared,
-    crossScalaVersions := Seq(scala212, scala213),
+    crossScalaVersions := Seq(scala212),
     Mima.settings,
     Mima.lmCoursierFilters,
     Mima.lmCoursierShadedFilters,
