@@ -16,7 +16,7 @@ inThisBuild(List(
     )
   ),
   semanticdbEnabled := true,
-  semanticdbVersion := "4.9.8",
+  semanticdbVersion := "4.13.10",
   scalafixDependencies += "net.hamnaberg" %% "dataclass-scalafix" % dataclassScalafixV,
   libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % "always"
 ))
@@ -24,7 +24,7 @@ inThisBuild(List(
 Global / excludeLintKeys += scriptedBufferLog
 Global / excludeLintKeys += scriptedLaunchOpts
 
-def coursierVersion0 = "2.1.23"
+def coursierVersion0 = "2.1.25-M19"
 def coursierDep = ("io.get-coursier" %% "coursier" % coursierVersion0)
   .exclude("org.codehaus.plexus", "plexus-archiver")
   .exclude("org.codehaus.plexus", "plexus-container-default")
@@ -61,7 +61,7 @@ lazy val definitions = project
   .disablePlugins(MimaPlugin)
   .settings(
     shared,
-    crossScalaVersions := Seq(scala212, scala213),
+    crossScalaVersions := Seq(scala212),
     libraryDependencies ++= Seq(
       coursierDep,
       "net.hamnaberg" %% "dataclass-annotation" % dataclassScalafixV % Provided,
@@ -78,7 +78,7 @@ lazy val `lm-coursier` = project
   .in(file("modules/lm-coursier"))
   .settings(
     shared,
-    crossScalaVersions := Seq(scala212, scala213),
+    crossScalaVersions := Seq(scala212),
     Mima.settings,
     Mima.lmCoursierFilters,
     libraryDependencies ++= Seq(
@@ -111,7 +111,7 @@ lazy val `lm-coursier-shaded` = project
   .enablePlugins(ShadingPlugin)
   .settings(
     shared,
-    crossScalaVersions := Seq(scala212, scala213),
+    crossScalaVersions := Seq(scala212),
     Mima.settings,
     Mima.lmCoursierFilters,
     Mima.lmCoursierShadedFilters,
@@ -137,12 +137,14 @@ lazy val `lm-coursier-shaded` = project
         "dependency",
         "org.fusesource",
         "macrocompat",
+        "io.github.alexarchambault.isterminal",
         "io.github.alexarchambault.windowsansi",
         "concurrentrefhashmap",
         // pulled by the plexus-archiver stuff that coursier-cache
         // depends on for now… can hopefully be removed in the future
         "com.google.common",
         "org.apache.commons",
+        "org.apache.tika",
         "org.apache.xbean",
         "org.codehaus",
         "org.iq80",
@@ -176,7 +178,8 @@ lazy val `sbt-coursier-shared` = project
     plugin,
     generatePropertyFile,
     libraryDependencies += "com.lihaoyi" %% "utest" % "0.9.1" % Test,
-    testFrameworks += new TestFramework("utest.runner.Framework")
+    testFrameworks += new TestFramework("utest.runner.Framework"),
+    dontPublish
   )
 
 lazy val `sbt-coursier-shared-shaded` = project
@@ -221,7 +224,8 @@ lazy val `sbt-coursier` = project
       // (but shouldn't scripted itself handle that…?)
       (`lm-coursier` / publishLocal).value
       (`sbt-coursier-shared` / publishLocal).value
-    }
+    },
+    dontPublish
   )
 
 lazy val customProtocolForTest212 = project
