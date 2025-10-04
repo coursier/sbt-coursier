@@ -20,7 +20,6 @@ object Settings {
   }
 
   lazy val shared = Seq(
-    resolvers ++= Resolver.sonatypeOssRepos("releases"),
     crossScalaVersions := Seq(scala212),
     scalaVersion := scala212,
     scalacOptions ++= Seq(
@@ -97,7 +96,9 @@ object Settings {
     }
 
   lazy val dontPublish = Seq(
-    publish := {}
+    publish := {},
+    // we need publishing for tests
+    // publish / skip := true,
   )
 
 }
