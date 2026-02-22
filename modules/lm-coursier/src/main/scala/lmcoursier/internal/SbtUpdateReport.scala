@@ -359,8 +359,14 @@ private[internal] object SbtUpdateReport {
           OrganizationArtifactReport(rep.module.organization, rep.module.name, Vector(rep))
         }
 
+        def conflicts: Seq[coursier.graph.Conflict] =
+          try {
+            coursier.graph.Conflict(subRes)
+          } catch {
+            case e: Throwable if missingOk => Nil
+          }
         val evicted = for {
-          c <- coursier.graph.Conflict(subRes)
+          c <- conflicts
           // ideally, forceVersions should be taken into account by coursier.core.Resolution itself, when
           // it computes transitive dependencies. It only handles forced versions at a global level for now,
           // rather than handing them for each dependency (where each dependency could have its own forced
