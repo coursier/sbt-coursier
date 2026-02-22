@@ -2,8 +2,7 @@ package lmcoursier.internal
 
 import java.io.File
 import java.net.URL
-import java.util.GregorianCalendar
-import java.util.concurrent.ConcurrentHashMap
+import java.util.{Collections, GregorianCalendar, WeakHashMap}
 import coursier.cache.CacheUrl
 import coursier.{Attributes, Dependency, Module, Project, Resolution}
 import coursier.core.{Classifier, Configuration, Extension, Info, Publication, Type}
@@ -17,8 +16,7 @@ import scala.annotation.tailrec
 private[internal] object SbtUpdateReport {
 
   private def caching[K, V](f: K => V): K => V = {
-
-    val cache = new ConcurrentHashMap[K, V]
+    val cache = Collections.synchronizedMap(new WeakHashMap[K, V])
 
     key =>
       val previousValueOpt = Option(cache.get(key))
@@ -361,8 +359,14 @@ private[internal] object SbtUpdateReport {
           OrganizationArtifactReport(rep.module.organization, rep.module.name, Vector(rep))
         }
 
+        def conflicts: Seq[coursier.graph.Conflict] =
+          try {
+            coursier.graph.Conflict(subRes)
+          } catch {
+            case e: Throwable if missingOk => Nil
+          }
         val evicted = for {
-          c <- coursier.graph.Conflict(subRes)
+          c <- conflicts
           // ideally, forceVersions should be taken into account by coursier.core.Resolution itself, when
           // it computes transitive dependencies. It only handles forced versions at a global level for now,
           // rather than handing them for each dependency (where each dependency could have its own forced

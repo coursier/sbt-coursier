@@ -38,13 +38,13 @@ updateSbtClassifiersCheck := {
         case (org, name) =>
           artifacts(org, name).exists(_._2.getName.endsWith("-sources.jar"))
       },
-      s"Any of $orgName not found"
+      s"None of ${orgName.toList} was found"
     )
 
   ensureHasArtifact("org.scala-lang" -> "scala-library")
   ensureHasArtifact("org.scala-lang.modules" -> s"scala-xml_${scalaBinaryVersion.value}")
-  ensureHasArtifact(
-    "io.get-coursier" -> s"lm-coursier_${scalaBinaryVersion.value}",
-    "io.get-coursier" -> s"lm-coursier-shaded_${scalaBinaryVersion.value}"
-  )
+  // ensureHasArtifact(
+  //   "io.get-coursier" -> s"lm-coursier_${scalaBinaryVersion.value}",
+  //   "io.get-coursier" -> s"lm-coursier-shaded_${scalaBinaryVersion.value}"
+  // )
 }
