@@ -2,7 +2,7 @@ name: CI
 on:
   push:
     branches:
-    - master
+    - main
     tags:
     - "v*"
   pull_request:
@@ -27,7 +27,7 @@ jobs:
       with:
         fetch-depth: 0
         submodules: true
-    - uses: coursier/cache-action@v7.0
+    - uses: coursier/cache-action@v8.0
     - uses: coursier/setup-action@v2.0
       with:
         jvm: 8
@@ -47,7 +47,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
-      - uses: coursier/cache-action@v7.0
+      - uses: coursier/cache-action@v8.0
       - uses: coursier/setup-action@v2.0
         with:
           jvm: 8
