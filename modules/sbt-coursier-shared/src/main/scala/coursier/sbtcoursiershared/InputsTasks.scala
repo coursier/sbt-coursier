@@ -1,11 +1,25 @@
 package coursier.sbtcoursiershared
 
-import lmcoursier.definitions.{Attributes, Classifier, Configuration, Dependency, Extension, Info, Module, ModuleName, Organization, Project, Publication, Strict, Type}
+import java.net.URL
+import lmcoursier.definitions.{
+  Classifier => CClassifier,
+  Configuration => CConfiguration,
+  Dependency => CDependency,
+  Extension => CExtension,
+  Info => CInfo,
+  Module => CModule,
+  ModuleName => CModuleName,
+  Organization => COrganization,
+  Project => CProject,
+  Publication => CPublication,
+  Strict => CStrict,
+  Type => CType
+}
 import lmcoursier.{FallbackDependency, FromSbt, Inputs}
 import coursier.sbtcoursiershared.SbtCoursierShared.autoImport._
 import coursier.sbtcoursiershared.Structure._
 import lmcoursier.credentials.DirectCredentials
-import sbt.{Def, SettingKey}
+import sbt._
 import sbt.Keys._
 import sbt.librarymanagement.{ConflictManager, InclExclRule, ModuleID}
 import sbt.util.Logger
@@ -15,7 +29,7 @@ import scala.language.reflectiveCalls
 
 object InputsTasks {
 
-  lazy val actualExcludeDependencies =
+  lazy val actualExcludeDependencies: SettingKey[scala.Seq[InclExclRule]] =
     try {
       sbt.Keys
         .asInstanceOf[{ def allExcludeDependencies: SettingKey[scala.Seq[InclExclRule]] }]
@@ -31,73 +45,67 @@ object InputsTasks {
     configurations: Seq[sbt.librarymanagement.Configuration],
     sv: String,
     sbv: String,
+    auOpt: Option[URL],
     log: Logger
-  ): Project = {
+  ): CProject = {
 
     val configMap = Inputs.configExtendsSeq(configurations).toMap
 
-    FromSbt.project(
+    val proj0 = FromSbt.project(
       projId,
       dependencies,
       configMap,
       sv,
       sbv
     )
+    auOpt match {
+      case Some(au) =>
+        val props = proj0.properties :+ ("info.apiURL" -> au.toString)
+        proj0.withProperties(props)
+      case _ => proj0
+    }
   }
 
-  private[sbtcoursiershared] def coursierProjectTask: Def.Initialize[sbt.Task[Project]] =
-    Def.taskDyn {
-
-      val state = sbt.Keys.state.value
-      val projectRef = sbt.Keys.thisProjectRef.value
-
-      val allDependenciesTask = allDependencies.in(projectRef).get(state)
-
-      Def.task {
-        coursierProject0(
-          projectID.in(projectRef).get(state),
-          allDependenciesTask.value,
-          // should projectID.configurations be used instead?
-          ivyConfigurations.in(projectRef).get(state),
-          scalaVersion.in(projectRef).get(state),
-          scalaBinaryVersion.in(projectRef).get(state),
-          state.log
-        )
-      }
+  private[sbtcoursiershared] def coursierProjectTask: Def.Initialize[sbt.Task[CProject]] =
+    Def.task {
+      coursierProject0(
+        projectID.value,
+        allDependencies.value,
+        // should projectID.configurations be used instead?
+        ivyConfigurations.value,
+        scalaVersion.value,
+        scalaBinaryVersion.value,
+        apiURL.value,
+        streams.value.log
+      )
     }
 
-  private def moduleFromIvy(id: org.apache.ivy.core.module.id.ModuleRevisionId): Module =
-    Module(
-      Organization(id.getOrganisation),
-      ModuleName(id.getName),
-      id.getExtraAttributes
-        .asScala
-        .map {
-          case (k0, v0) => k0.asInstanceOf[String] -> v0.asInstanceOf[String]
-        }
-        .toMap
+  private def moduleFromIvy(id: org.apache.ivy.core.module.id.ModuleRevisionId): CModule =
+    CModule(
+      COrganization(id.getOrganisation),
+      CModuleName(id.getName),
+      id.getExtraAttributes.asScala.map {
+        case (k0, v0) => k0.asInstanceOf[String] -> v0.asInstanceOf[String]
+      }.toMap
     )
 
-  private def dependencyFromIvy(desc: org.apache.ivy.core.module.descriptor.DependencyDescriptor): Seq[(Configuration, Dependency)] = {
+  private def dependencyFromIvy(
+      desc: org.apache.ivy.core.module.descriptor.DependencyDescriptor
+  ): Seq[(CConfiguration, CDependency)] = {
 
     val id = desc.getDependencyRevisionId
     val module = moduleFromIvy(id)
-    val exclusions = desc
-      .getAllExcludeRules
-      .map { rule =>
-        // we're ignoring rule.getConfigurations and rule.getMatcher here
-        val modId = rule.getId.getModuleId
-        // we're ignoring modId.getAttributes here
-        (Organization(modId.getOrganisation), ModuleName(modId.getName))
-      }
-      .toSet
+    val exclusions = desc.getAllExcludeRules.map { rule =>
+      // we're ignoring rule.getConfigurations and rule.getMatcher here
+      val modId = rule.getId.getModuleId
+      // we're ignoring modId.getAttributes here
+      (COrganization(modId.getOrganisation), CModuleName(modId.getName))
+    }.toSet
 
-    val configurations = desc
-      .getModuleConfigurations
-      .toVector
+    val configurations = desc.getModuleConfigurations.toVector
       .flatMap(Inputs.ivyXmlMappings)
 
-    def dependency(conf: Configuration, pub: Publication) = Dependency(
+    def dependency(conf: CConfiguration, pub: CPublication) = CDependency(
       module,
       id.getRevision,
       conf,
@@ -107,18 +115,18 @@ object InputsTasks {
       desc.isTransitive
     )
 
-    val publications: Configuration => Publication = {
+    val publications: CConfiguration => CPublication = {
 
       val artifacts = desc.getAllDependencyArtifacts
 
       val m = artifacts.toVector.flatMap { art =>
-        val pub = Publication(art.getName, Type(art.getType), Extension(art.getExt), Classifier(""))
-        art.getConfigurations.map(Configuration(_)).toVector.map { conf =>
+        val pub = CPublication(art.getName, CType(art.getType), CExtension(art.getExt), CClassifier(""))
+        art.getConfigurations.map(CConfiguration(_)).toVector.map { conf =>
           conf -> pub
         }
       }.toMap
 
-      c => m.getOrElse(c, Publication("", Type(""), Extension(""), Classifier("")))
+      c => m.getOrElse(c, CPublication("", CType(""), CExtension(""), CClassifier("")))
     }
 
     configurations.map {
@@ -127,29 +135,20 @@ object InputsTasks {
     }
   }
 
-  private[sbtcoursiershared] def coursierInterProjectDependenciesTask: Def.Initialize[sbt.Task[Seq[Project]]] =
+  private[sbtcoursiershared] def coursierInterProjectDependenciesTask: Def.Initialize[sbt.Task[Seq[CProject]]] =
     Def.taskDyn {
 
       val state = sbt.Keys.state.value
       val projectRef = sbt.Keys.thisProjectRef.value
 
-      val projectRefs = Structure.allRecursiveInterDependencies(state, projectRef)
-
-      val t = coursierProject.forAllProjectsOpt(state, projectRefs :+ projectRef)
+      val projectRefs = transitiveInterDependencies(state, projectRef)
 
       Def.task {
-        t.value.toVector.flatMap {
-          case (ref, None) =>
-            if (ref.build != projectRef.build)
-              state.log.warn(s"Cannot get coursier info for project under ${ref.build}, is sbt-coursier also added to it?")
-            Nil
-          case (_, Some(p)) =>
-            Seq(p)
-        }
+        coursierProject.all(ScopeFilter(inProjects(projectRefs: _*))).value
       }
     }
 
-  private[sbtcoursiershared] def coursierExtraProjectsTask: Def.Initialize[sbt.Task[Seq[Project]]] =
+  private[sbtcoursiershared] def coursierExtraProjectsTask: Def.Initialize[sbt.Task[Seq[CProject]]] =
     Def.task {
       val projects = coursierInterProjectDependencies.value
       val projectModules = projects.map(_.module).toSet
@@ -170,11 +169,11 @@ object InputsTasks {
             val configurations = v
               .getConfigurations
               .map { c =>
-                Configuration(c.getName) -> c.getExtends.map(Configuration(_)).toSeq
+                CConfiguration(c.getName) -> c.getExtends.map(CConfiguration(_)).toSeq
               }
               .toMap
             val deps = v.getDependencies.flatMap(dependencyFromIvy)
-            Project(
+            CProject(
               module,
               v.getModuleRevisionId.getRevision,
               deps,
@@ -182,30 +181,25 @@ object InputsTasks {
               Nil,
               None,
               Nil,
-              Info("", "", Nil, Nil, None)
+              CInfo("", "", Nil, Nil, None)
             )
         }
     }
 
   private[sbtcoursiershared] def coursierFallbackDependenciesTask: Def.Initialize[sbt.Task[Seq[FallbackDependency]]] =
     Def.taskDyn {
-
-      val state = sbt.Keys.state.value
-      val projectRef = sbt.Keys.thisProjectRef.value
-
-      val projects = allRecursiveInterDependencies(state, projectRef)
-
-      val allDependenciesTask = allDependencies
-        .forAllProjects(state, projectRef +: projects)
-        .map(_.values.toVector.flatten)
+      val s = state.value
+      val projectRef = thisProjectRef.value
+      val projects = transitiveInterDependencies(s, projectRef)
 
       Def.task {
-        val allDependencies = allDependenciesTask.value
+        val allDeps =
+          allDependencies.all(ScopeFilter(inProjects(projectRef +: projects: _*))).value.flatten
 
         FromSbt.fallbackDependencies(
-          allDependencies,
-          scalaVersion.in(projectRef).get(state),
-          scalaBinaryVersion.in(projectRef).get(state)
+          allDeps,
+          scalaVersion.value,
+          scalaBinaryVersion.value
         )
       }
     }
@@ -257,7 +251,7 @@ object InputsTasks {
       case ConflictManager.latestRevision.name =>
         None
       case ConflictManager.strict.name =>
-        val strict = Strict()
+        val strict = CStrict()
           .withInclude(Set((cm.organization, cm.module)))
         Some(strict)
       case other =>
