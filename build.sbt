@@ -15,6 +15,7 @@ inThisBuild(List(
       url("https://github.com/alexarchambault")
     )
   ),
+  Test / fork := true,
   semanticdbEnabled := true,
   semanticdbVersion := "4.13.10",
   scalafixDependencies += "net.hamnaberg" %% "dataclass-scalafix" % dataclassScalafixV,
