@@ -136,11 +136,13 @@ class CoursierDependencyResolution(
         sys.error(s"unrecognized ModuleDescriptor type: $module")
     }
 
-    val so = conf.scalaOrganization.map(Organization(_))
-      .orElse(module0.scalaModuleInfo.map(m => Organization(m.scalaOrganization)))
-      .getOrElse(org"org.scala-lang")
-    val sv = conf.scalaVersion
-      .orElse(module0.scalaModuleInfo.map(_.scalaFullVersion))
+    // TODO: use with coursier.params.ResolutionParams.withScalaOrganizationOverride
+    val soOpt = module0.scalaModuleInfo.map(_.scalaOrganization)
+      .orElse(conf.scalaOrganization)
+      .map(Organization.apply)
+    val so = soOpt.getOrElse(org"org.scala-lang")
+    val sv = module0.scalaModuleInfo.map(_.scalaFullVersion)
+      .orElse(conf.scalaVersion)
       // FIXME Manage to do stuff below without a scala version?
       .getOrElse(scala.util.Properties.versionNumberString)
 
@@ -231,11 +233,12 @@ class CoursierDependencyResolution(
       }
       .toSet
 
+    val autoScalaLib = conf.autoScalaLibrary && module0.scalaModuleInfo.forall(_.overrideScalaVersion)
     val resolutionParams = ResolutionParams(
       dependencies = dependencies,
       fallbackDependencies = conf.fallbackDependencies,
       orderedConfigs = orderedConfigs,
-      autoScalaLibOpt = if (conf.autoScalaLibrary) Some((so, sv)) else None,
+      autoScalaLibOpt = if (autoScalaLib) Some((so, sv)) else None,
       mainRepositories = mainRepositories,
       parentProjectCache = Map.empty,
       interProjectDependencies = interProjectDependencies,
