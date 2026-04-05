@@ -66,21 +66,19 @@ object TemporaryInMemoryRepository {
           // iff this doesn't throw.
           conn.getInputStream.close()
           Some(true)
-        }
-        catch {
+        } catch {
           case _: FileNotFoundException => Some(false)
-          case _: IOException           => None // error other than not found
-        }
-        finally {
+          case _: IOException => None // error other than not found
+        } finally {
           if (conn != null)
             closeConn(conn)
         }
       }
 
       url.getProtocol match {
-        case "file"           => ifFile
+        case "file" => ifFile
         case "http" | "https" => ifHttp
-        case _                => None
+        case _ => None
       }
     }
 
@@ -91,11 +89,9 @@ object TemporaryInMemoryRepository {
         // NOT setting request type to HEAD here.
         conn.getInputStream.close()
         true
-      }
-      catch {
+      } catch {
         case _: IOException => false
-      }
-      finally {
+      } finally {
         if (conn != null)
           closeConn(conn)
       }
@@ -128,7 +124,7 @@ object TemporaryInMemoryRepository {
 
 }
 
-final class TemporaryInMemoryRepository private(
+final class TemporaryInMemoryRepository private (
   val fallbacks: Map[(Module, String), (URL, Boolean)],
   val localArtifactsShouldBeCached: Boolean,
   val cacheOpt: Option[FileCache[Nothing]]

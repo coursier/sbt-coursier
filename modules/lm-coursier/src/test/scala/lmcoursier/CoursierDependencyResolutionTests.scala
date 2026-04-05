@@ -20,8 +20,14 @@ class CoursierDependencyResolutionTests extends AnyPropSpec with Matchers {
 
   private val conf211 = CoursierConfiguration().withAutoScalaLibrary(true).withScalaVersion(Some("2.11.12"))
   private val scalaModule212 = ModuleID("org.scala-lang", "scala-library", "2.12.21")
-  private val scalaModuleInfo213 = ScalaModuleInfo("2.13.18", "2.13", Vector.empty,
-    checkExplicit = false, filterImplicit = false, overrideScalaVersion = false)
+  private val scalaModuleInfo213 = ScalaModuleInfo(
+    "2.13.18",
+    "2.13",
+    Vector.empty,
+    checkExplicit = false,
+    filterImplicit = false,
+    overrideScalaVersion = false
+  )
 
   property("missingOk from passed UpdateConfiguration") {
 
@@ -38,8 +44,9 @@ class CoursierDependencyResolutionTests extends AnyPropSpec with Matchers {
     depRes.update(module, UpdateConfiguration(), UnresolvedWarningConfiguration(), logger)
       .fold(w => (), rep => sys.error(s"Expected resolution to fail, got report $rep"))
 
-    val report = depRes.update(module, UpdateConfiguration().withMissingOk(true), UnresolvedWarningConfiguration(), logger)
-      .fold(w => throw w.resolveException, identity)
+    val report =
+      depRes.update(module, UpdateConfiguration().withMissingOk(true), UnresolvedWarningConfiguration(), logger)
+        .fold(w => throw w.resolveException, identity)
   }
 
   property("get scalalib at global version, no scalaModuleInfo") {

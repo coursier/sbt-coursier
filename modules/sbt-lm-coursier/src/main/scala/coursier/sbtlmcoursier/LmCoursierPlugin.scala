@@ -8,7 +8,11 @@ import coursier.sbtcoursiershared.{InputsTasks, SbtCoursierShared}
 import sbt.{AutoPlugin, Classpaths, Def, Setting, Task, taskKey}
 import sbt.Project.inTask
 import sbt.KeyRanks.DTask
-import sbt.Keys.{appConfiguration, autoScalaLibrary, classpathTypes, dependencyOverrides, dependencyResolution, ivyPaths, scalaBinaryVersion, scalaModuleInfo, scalaOrganization, scalaVersion, streams, updateClassifiers, updateConfiguration, updateSbtClassifiers}
+import sbt.Keys.{
+  appConfiguration, autoScalaLibrary, classpathTypes, dependencyOverrides, dependencyResolution, ivyPaths,
+  scalaBinaryVersion, scalaModuleInfo, scalaOrganization, scalaVersion, streams, updateClassifiers, updateConfiguration,
+  updateSbtClassifiers
+}
 import sbt.librarymanagement.DependencyResolution
 
 import scala.language.reflectiveCalls
@@ -19,7 +23,9 @@ object LmCoursierPlugin extends AutoPlugin {
   import SbtCoursierShared.autoImport._
 
   object autoImport {
-    val coursierConfiguration = taskKey[CoursierConfiguration]("General dependency management (Coursier) settings, such as the resolvers and options to use.").withRank(DTask)
+    val coursierConfiguration = taskKey[CoursierConfiguration](
+      "General dependency management (Coursier) settings, such as the resolvers and options to use."
+    ).withRank(DTask)
 
     val addSbtCoursier: Seq[Def.Setting[_]] = {
       import sbt._
@@ -32,7 +38,6 @@ object LmCoursierPlugin extends AutoPlugin {
   }
 
   import autoImport._
-
 
   override def trigger = allRequirements
 
@@ -47,8 +52,7 @@ object LmCoursierPlugin extends AutoPlugin {
         .asInstanceOf[{ def scalaCompilerBridgeScope: TaskKey[Unit] }]
         .scalaCompilerBridgeScope
       Some(key)
-    }
-    catch {
+    } catch {
       case _: NoSuchMethodError | _: NoSuchMethodException =>
         None
     }
@@ -63,30 +67,30 @@ object LmCoursierPlugin extends AutoPlugin {
         Def.task(sbt.hack.Foo.updateTask(lm).value)
       }.value
     ) ++
-    setCsrConfiguration ++
-    inTask(updateClassifiers)(
-      Seq(
-        dependencyResolution := mkDependencyResolution.value,
-        coursierConfiguration := mkCoursierConfiguration(withClassifiers = true).value
-      )
-    ) ++
-    inTask(updateSbtClassifiers)(
-      Seq(
-        dependencyResolution := mkDependencyResolution.value,
-        coursierConfiguration := mkCoursierConfiguration(sbtClassifiers = true).value
-      )
-    ) ++ {
-      scalaCompilerBridgeScopeOpt match {
-        case None => Nil
-        case Some(scalaCompilerBridgeScopeKey) =>
-          inTask(scalaCompilerBridgeScopeKey)(
-            Seq(
-              dependencyResolution := mkDependencyResolution.value,
-              coursierConfiguration := mkCoursierConfiguration().value
+      setCsrConfiguration ++
+      inTask(updateClassifiers)(
+        Seq(
+          dependencyResolution := mkDependencyResolution.value,
+          coursierConfiguration := mkCoursierConfiguration(withClassifiers = true).value
+        )
+      ) ++
+      inTask(updateSbtClassifiers)(
+        Seq(
+          dependencyResolution := mkDependencyResolution.value,
+          coursierConfiguration := mkCoursierConfiguration(sbtClassifiers = true).value
+        )
+      ) ++ {
+        scalaCompilerBridgeScopeOpt match {
+          case None => Nil
+          case Some(scalaCompilerBridgeScopeKey) =>
+            inTask(scalaCompilerBridgeScopeKey)(
+              Seq(
+                dependencyResolution := mkDependencyResolution.value,
+                coursierConfiguration := mkCoursierConfiguration().value
+              )
             )
-          )
+        }
       }
-    }
 
   private def setCsrConfiguration: Seq[Setting[_]] = {
     val csrConfigurationOpt = try {
@@ -104,7 +108,10 @@ object LmCoursierPlugin extends AutoPlugin {
     }
   }
 
-  private def mkCoursierConfiguration(withClassifiers: Boolean = false, sbtClassifiers: Boolean = false): Def.Initialize[Task[CoursierConfiguration]] =
+  private def mkCoursierConfiguration(
+    withClassifiers: Boolean = false,
+    sbtClassifiers: Boolean = false
+  ): Def.Initialize[Task[CoursierConfiguration]] =
     Def.taskDyn {
       val resolversTask =
         if (sbtClassifiers)
@@ -147,7 +154,6 @@ object LmCoursierPlugin extends AutoPlugin {
               throw new Exception(s"Unrecognized reconciliation: '${mod.revision}'")
           }
         }
-
 
         val userForceVersions = Inputs.forceVersions(dependencyOverrides.value, scalaVer, sbv)
 

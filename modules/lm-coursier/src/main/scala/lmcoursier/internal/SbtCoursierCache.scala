@@ -17,7 +17,6 @@ class SbtCoursierCache {
   // are cached
   private val reportsCache = new ConcurrentHashMap[ReportKey, UpdateReport]
 
-
   def resolutionOpt(key: ResolutionKey): Option[Map[Configuration, Resolution]] =
     Option(resolutionsCache.get(key))
   def putResolution(key: ResolutionKey, res: Map[Configuration, Resolution]): Unit =
@@ -58,7 +57,6 @@ object SbtCoursierCache {
     sbtClassifiers: Boolean,
     includeSignatures: Boolean
   )
-
 
   // private[coursier]
   val default = new SbtCoursierCache

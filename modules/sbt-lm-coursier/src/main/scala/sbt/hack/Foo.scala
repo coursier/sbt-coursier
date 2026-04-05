@@ -24,7 +24,8 @@ object Foo {
           val fullUpdateOutput = cacheDirectory / "out"
           val now = System.currentTimeMillis
           val diff = now - fullUpdateOutput.lastModified()
-          val elapsedDuration = new scala.concurrent.duration.FiniteDuration(diff, java.util.concurrent.TimeUnit.MILLISECONDS)
+          val elapsedDuration =
+            new scala.concurrent.duration.FiniteDuration(diff, java.util.concurrent.TimeUnit.MILLISECONDS)
           fullUpdateOutput.exists() && elapsedDuration > period
       }
     }
@@ -33,13 +34,13 @@ object Foo {
     val updateConf = {
       // Log captures log messages at all levels, except ivy logs.
       // Use full level when debug is enabled so that ivy logs are shown.
-      import UpdateLogging.{ Full, DownloadOnly, Default }
+      import UpdateLogging.{Full, DownloadOnly, Default}
       val conf = updateConfiguration.value
       val maybeUpdateLevel = (logLevel in update).?.value
       val conf1 = maybeUpdateLevel.orElse(state0.get(logLevel.key)) match {
         case Some(Level.Debug) if conf.logging == Default => conf.withLogging(logging = Full)
-        case Some(_) if conf.logging == Default           => conf.withLogging(logging = DownloadOnly)
-        case _                                            => conf
+        case Some(_) if conf.logging == Default => conf.withLogging(logging = DownloadOnly)
+        case _ => conf
       }
 
       // logical clock is folded into UpdateConfiguration
@@ -75,7 +76,9 @@ object Foo {
       case _: NoSuchMethodError =>
         // cachedUpdate method changed in https://github.com/sbt/sbt/commit/6c7faf2b8611f122a37b824c6e08e950855d939f
         import sbt.internal.librarymanagement.CompatibilityWarningOptions
-        import sbt.librarymanagement.{DependencyResolution, ModuleDescriptor, UnresolvedWarningConfiguration, UpdateConfiguration}
+        import sbt.librarymanagement.{
+          DependencyResolution, ModuleDescriptor, UnresolvedWarningConfiguration, UpdateConfiguration
+        }
         import sbt.util.CacheStoreFactory
         LibraryManagement.asInstanceOf[{
           def cachedUpdate(

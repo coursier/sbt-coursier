@@ -80,7 +80,9 @@ object IvyXml {
 
     val publicationElems = publications.map {
       case (pub, configs) =>
-        val n = <artifact name={pub.name} type={pub.`type`.value} ext={pub.ext.value} conf={configs.map(_.value).mkString(",")} />
+        val n = <artifact name={pub.name} type={pub.`type`.value} ext={pub.ext.value} conf={
+          configs.map(_.value).mkString(",")
+        } />
 
         if (pub.classifier.value.nonEmpty)
           n % <x e:classifier={pub.classifier.value} />.attributes
@@ -95,7 +97,9 @@ object IvyXml {
             <exclude org={org.value} module={name.value} name="*" type="*" ext="*" conf="" matcher="exact"/>
         }
 
-        val n = <dependency org={dep.module.organization.value} name={dep.module.name.value} rev={dep.version} conf={s"${conf.value}->${dep.configuration.value}"}>
+        val n = <dependency org={dep.module.organization.value} name={dep.module.name.value} rev={dep.version} conf={
+          s"${conf.value}->${dep.configuration.value}"
+        }>
           {excludes}
         </dependency>
 

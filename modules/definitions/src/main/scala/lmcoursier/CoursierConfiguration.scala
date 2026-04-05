@@ -5,8 +5,12 @@ import dataclass.{data, since}
 import coursier.cache.CacheDefaults
 import coursier.params.rule.{Rule, RuleResolution}
 import lmcoursier.credentials.Credentials
-import lmcoursier.definitions.{Authentication, CacheLogger, CachePolicy, FromCoursier, Module, ModuleMatchers, Project, Reconciliation, Strict}
-import sbt.librarymanagement.{CrossVersion, InclExclRule, ModuleDescriptorConfiguration, ModuleID, ModuleInfo, Resolver, UpdateConfiguration}
+import lmcoursier.definitions.{
+  Authentication, CacheLogger, CachePolicy, FromCoursier, Module, ModuleMatchers, Project, Reconciliation, Strict
+}
+import sbt.librarymanagement.{
+  CrossVersion, InclExclRule, ModuleDescriptorConfiguration, ModuleID, ModuleInfo, Resolver, UpdateConfiguration
+}
 import xsbti.Logger
 
 import scala.concurrent.duration.{Duration, FiniteDuration}

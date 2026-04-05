@@ -17,8 +17,8 @@ object Resolvers {
 
   private def mavenCompatibleBaseOpt(patterns: Patterns): Option[String] =
     if (patterns.isMavenCompatible) {
-      //input  : /Users/user/custom/repo/[organisation]/[module](_[scalaVersion])(_[sbtVersion])/[revision]/[artifact]-[revision](-[classifier]).[ext]
-      //output : /Users/user/custom/repo/
+      // input  : /Users/user/custom/repo/[organisation]/[module](_[scalaVersion])(_[sbtVersion])/[revision]/[artifact]-[revision](-[classifier]).[ext]
+      // output : /Users/user/custom/repo/
       def basePattern(pattern: String): String = pattern.takeWhile(c => c != '[' && c != '(')
 
       val baseIvyPattern = basePattern(patterns.ivyPatterns.head)
@@ -50,9 +50,9 @@ object Resolvers {
       case e: MalformedURLException =>
         log.warn(
           "Error parsing Maven repository base " +
-          root +
-          Option(e.getMessage).fold("")(" (" + _ + ")") +
-          ", ignoring it"
+            root +
+            Option(e.getMessage).fold("")(" (" + _ + ")") +
+            ", ignoring it"
         )
 
         None
@@ -82,8 +82,8 @@ object Resolvers {
         mavenRepositoryOpt(r.root, log, authentication, classLoaders)
 
       case r: FileRepository
-        if r.patterns.ivyPatterns.lengthCompare(1) == 0 &&
-          r.patterns.artifactPatterns.lengthCompare(1) == 0 =>
+          if r.patterns.ivyPatterns.lengthCompare(1) == 0 &&
+            r.patterns.artifactPatterns.lengthCompare(1) == 0 =>
 
         val mavenCompatibleBaseOpt0 = mavenCompatibleBaseOpt(r.patterns)
 

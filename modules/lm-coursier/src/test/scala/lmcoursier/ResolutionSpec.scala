@@ -150,7 +150,6 @@ final class ResolutionSpec extends AnyPropSpec with Matchers {
     val resolution =
       lmEngine.update(coursierModule, UpdateConfiguration(), UnresolvedWarningConfiguration(), log)
 
-
     val report = resolution.right.get
 
     val modules = report.configurations.flatMap(_.modules)
@@ -190,7 +189,6 @@ final class ResolutionSpec extends AnyPropSpec with Matchers {
     val coursierModule = module(lmEngine, stubModule, dependencies, Some("2.12.13"))
     val resolution =
       lmEngine.update(coursierModule, UpdateConfiguration(), UnresolvedWarningConfiguration(), log)
-
 
     val report = resolution.right.get
 

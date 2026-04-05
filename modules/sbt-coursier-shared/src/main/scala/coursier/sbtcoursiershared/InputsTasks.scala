@@ -1,6 +1,9 @@
 package coursier.sbtcoursiershared
 
-import lmcoursier.definitions.{Attributes, Classifier, Configuration, Dependency, Extension, Info, Module, ModuleName, Organization, Project, Publication, Strict, Type}
+import lmcoursier.definitions.{
+  Attributes, Classifier, Configuration, Dependency, Extension, Info, Module, ModuleName, Organization, Project,
+  Publication, Strict, Type
+}
 import lmcoursier.{FallbackDependency, FromSbt, Inputs}
 import coursier.sbtcoursiershared.SbtCoursierShared.autoImport._
 import coursier.sbtcoursiershared.Structure._
@@ -78,7 +81,8 @@ object InputsTasks {
         .toMap
     )
 
-  private def dependencyFromIvy(desc: org.apache.ivy.core.module.descriptor.DependencyDescriptor): Seq[(Configuration, Dependency)] = {
+  private def dependencyFromIvy(desc: org.apache.ivy.core.module.descriptor.DependencyDescriptor)
+    : Seq[(Configuration, Dependency)] = {
 
     val id = desc.getDependencyRevisionId
     val module = moduleFromIvy(id)
@@ -248,7 +252,6 @@ object InputsTasks {
     }
   }
 
-
   def strictTask = Def.task {
     val cm = conflictManager.value
     val log = streams.value.log
@@ -265,6 +268,5 @@ object InputsTasks {
         None
     }
   }
-
 
 }

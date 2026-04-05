@@ -12,8 +12,7 @@ object Properties {
           .getClassLoader
           .getResourceAsStream("coursier/sbtcoursier.properties")
       )
-    }
-    catch  {
+    } catch {
       case _: NullPointerException =>
     }
     p

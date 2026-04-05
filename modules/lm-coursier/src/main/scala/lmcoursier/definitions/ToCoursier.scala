@@ -61,12 +61,12 @@ object ToCoursier {
       case Reconciliation.SemVer => coursier.core.Reconciliation.SemVer
     }
 
-  def reconciliation(rs: Vector[(ModuleMatchers, Reconciliation)]):
-    Vector[(coursier.util.ModuleMatchers, coursier.core.Reconciliation)] =
+  def reconciliation(rs: Vector[(ModuleMatchers, Reconciliation)])
+    : Vector[(coursier.util.ModuleMatchers, coursier.core.Reconciliation)] =
     rs map { case (m, r) => (moduleMatchers(m), reconciliation(r)) }
 
-  def sameVersions(sv: Seq[Set[InclExclRule]]):
-    Seq[(coursier.params.rule.SameVersion, coursier.params.rule.RuleResolution)] =
+  def sameVersions(sv: Seq[Set[InclExclRule]])
+    : Seq[(coursier.params.rule.SameVersion, coursier.params.rule.RuleResolution)] =
     sv.map { libs =>
       val matchers = libs.map(rule => coursier.util.ModuleMatcher(module(rule.organization, rule.name)))
       coursier.params.rule.SameVersion(matchers) -> coursier.params.rule.RuleResolution.TryResolve
