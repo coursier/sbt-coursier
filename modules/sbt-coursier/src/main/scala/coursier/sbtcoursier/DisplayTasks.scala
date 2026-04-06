@@ -96,7 +96,6 @@ object DisplayTasks {
     }
   }
 
-
   def coursierWhatDependsOnTask(
     moduleName: String,
     sbtClassifiers: Boolean = false,

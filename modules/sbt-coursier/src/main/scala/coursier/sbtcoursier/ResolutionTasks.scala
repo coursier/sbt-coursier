@@ -21,7 +21,8 @@ object ResolutionTasks {
     missingOk: Boolean = false,
   ): Def.Initialize[sbt.Task[Map[Configuration, coursier.Resolution]]] = {
 
-    val currentProjectTask: sbt.Def.Initialize[sbt.Task[(Project, Seq[FallbackDependency], Seq[(Configuration, Seq[Configuration])])]] =
+    val currentProjectTask
+      : sbt.Def.Initialize[sbt.Task[(Project, Seq[FallbackDependency], Seq[(Configuration, Seq[Configuration])])]] =
       if (sbtClassifiers)
         Def.task {
           val sv = scalaVersion.value
@@ -41,7 +42,11 @@ object ResolutionTasks {
         Def.task {
           val baseConfigGraphs = coursierConfigGraphs.value
           val publications = coursierPublications.value
-          (ToCoursier.project(coursierProject.value.withPublications(publications)), coursierFallbackDependencies.value, baseConfigGraphs)
+          (
+            ToCoursier.project(coursierProject.value.withPublications(publications)),
+            coursierFallbackDependencies.value,
+            baseConfigGraphs
+          )
         }
 
     val resolversTask =

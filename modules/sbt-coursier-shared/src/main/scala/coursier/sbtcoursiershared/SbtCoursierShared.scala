@@ -24,7 +24,10 @@ object SbtCoursierShared extends AutoPlugin {
     val coursierGenerateIvyXml = settingKey[Boolean]("")
     val coursierWriteIvyXml = taskKey[File]("")
     val coursierProject = TaskKey[Project]("coursier-project")
-    val coursierInterProjectDependencies = TaskKey[Seq[Project]]("coursier-inter-project-dependencies", "Projects the current project depends on, possibly transitively")
+    val coursierInterProjectDependencies = TaskKey[Seq[Project]](
+      "coursier-inter-project-dependencies",
+      "Projects the current project depends on, possibly transitively"
+    )
     val coursierExtraProjects = TaskKey[Seq[Project]]("coursier-extra-projects", "")
     val coursierPublications = TaskKey[Seq[(Configuration, Publication)]]("coursier-publications")
 
@@ -33,7 +36,8 @@ object SbtCoursierShared extends AutoPlugin {
       "Whether resolvers should be re-ordered so that typically slow ones are given a lower priority"
     )
     val coursierResolvers = taskKey[Seq[Resolver]]("")
-    val coursierRecursiveResolvers = taskKey[Seq[Resolver]]("Resolvers of the current project, plus those of all from its inter-dependency projects")
+    val coursierRecursiveResolvers =
+      taskKey[Seq[Resolver]]("Resolvers of the current project, plus those of all from its inter-dependency projects")
     val coursierSbtResolvers = taskKey[Seq[Resolver]]("")
 
     val coursierFallbackDependencies = taskKey[Seq[FallbackDependency]]("")

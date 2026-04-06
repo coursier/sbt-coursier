@@ -138,8 +138,7 @@ object ResolutionRun {
                 if (attempt + 1 >= maxAttempts) {
                   log.error(s"Failed, maximum iterations ($maxAttempts) reached")
                   Task.point(Left(e))
-                }
-                else {
+                } else {
                   log.warn(s"Attempt ${attempt + 1} failed: $e")
                   Task.completeAfter(retryScheduler, waitOnError).flatMap { _ =>
                     retry(attempt + 1, waitOnError * 2)
@@ -151,8 +150,7 @@ object ResolutionRun {
               if (attempt + 1 >= maxAttempts) {
                 log.error(s"Failed, maximum iterations ($maxAttempts) reached")
                 Task.fail(e)
-              }
-              else
+              } else
                 Task.completeAfter(retryScheduler, waitOnError).flatMap { _ =>
                   retry(attempt + 1, waitOnError * 2)
                 }
@@ -218,7 +216,7 @@ object ResolutionRun {
   private[internal] def isTransientResolutionError(e: ResolutionError): Boolean =
     e.errors.exists {
       case err: CantDownloadModule => isTimeout(err) || isServerError(err)
-      case _                       => false
+      case _ => false
     }
 
   private def isTimeout(err: CantDownloadModule): Boolean =

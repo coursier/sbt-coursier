@@ -30,7 +30,8 @@ object InputsTasks {
       }
     }
 
-  def parentProjectCacheTask: Def.Initialize[sbt.Task[Map[Seq[sbt.librarymanagement.Resolver], Seq[coursier.ProjectCache]]]] =
+  def parentProjectCacheTask
+    : Def.Initialize[sbt.Task[Map[Seq[sbt.librarymanagement.Resolver], Seq[coursier.ProjectCache]]]] =
     Def.taskDyn {
 
       val state = sbt.Keys.state.value
@@ -47,21 +48,19 @@ object InputsTasks {
         for {
           m <- coursierRecursiveResolvers.forAllProjects(state, projects)
           n <- coursierResolutions.forAllProjects(state, m.keys.toSeq)
-        } yield
-          n.foldLeft(Map.empty[Seq[Resolver], Seq[ProjectCache]]) {
-            case (caches, (ref, resolutions)) =>
-              val mainResOpt = resolutions.collectFirst {
-                case (Configuration.compile, v) => v
-              }
+        } yield n.foldLeft(Map.empty[Seq[Resolver], Seq[ProjectCache]]) {
+          case (caches, (ref, resolutions)) =>
+            val mainResOpt = resolutions.collectFirst {
+              case (Configuration.compile, v) => v
+            }
 
-              val r = for {
-                resolvers <- m.get(ref)
-                resolution <- mainResOpt
-              } yield
-                caches.updated(resolvers, resolution.projectCache +: caches.getOrElse(resolvers, Seq.empty))
+            val r = for {
+              resolvers <- m.get(ref)
+              resolution <- mainResOpt
+            } yield caches.updated(resolvers, resolution.projectCache +: caches.getOrElse(resolvers, Seq.empty))
 
-              r.getOrElse(caches)
-          }
+            r.getOrElse(caches)
+        }
 
       Def.task(t.value)
     }

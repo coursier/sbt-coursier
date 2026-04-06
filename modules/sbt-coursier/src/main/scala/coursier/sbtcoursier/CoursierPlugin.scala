@@ -118,7 +118,8 @@ object CoursierPlugin extends AutoPlugin {
                     def topLoader() = launch.topLoader()
                     def getScala(version: String) = launch.getScala(version)
                     def getScala(version: String, reason: String) = launch.getScala(version, reason)
-                    def getScala(version: String, reason: String, scalaOrg: String) = launch.getScala(version, reason, scalaOrg)
+                    def getScala(version: String, reason: String, scalaOrg: String) =
+                      launch.getScala(version, reason, scalaOrg)
                     def isOverrideRepositories = launch.isOverrideRepositories
                     def ivyRepositories() =
                       throw new NoSuchMethodError("nope")
@@ -149,15 +150,17 @@ object CoursierPlugin extends AutoPlugin {
     ).value,
     update := UpdateTasks.updateTask(withClassifiers = false).value,
     updateClassifiers := UpdateTasks.updateTask(withClassifiers = true).value,
-    updateSbtClassifiers.in(Defaults.TaskGlobal) := UpdateTasks.updateTask(withClassifiers = true, sbtClassifiers = true).value,
+    updateSbtClassifiers.in(Defaults.TaskGlobal) :=
+      UpdateTasks.updateTask(withClassifiers = true, sbtClassifiers = true).value,
     coursierConfigGraphs := InputsTasks.ivyGraphsTask.value,
     coursierSbtClassifiersModule := classifiersModule.in(updateSbtClassifiers).value,
     coursierConfigurations := InputsTasks.coursierConfigurationsTask.value,
     coursierParentProjectCache := InputsTasks.parentProjectCacheTask.value,
-    coursierResolutions := (Def.taskDyn {
-      val missingOk = updateConfiguration.value.missingOk
-      ResolutionTasks.resolutionsTask(missingOk = missingOk)
-    }).value,
+    coursierResolutions :=
+      (Def.taskDyn {
+        val missingOk = updateConfiguration.value.missingOk
+        ResolutionTasks.resolutionsTask(missingOk = missingOk)
+      }).value,
     Keys.actualCoursierResolution := {
 
       val config = Configuration(Compile.name)
@@ -169,13 +172,14 @@ object CoursierPlugin extends AutoPlugin {
           sys.error(s"Resolution for configuration $config not found")
         )
     },
-    coursierSbtClassifiersResolutions := (Def.taskDyn {
-      val missingOk = (updateConfiguration in updateSbtClassifiers).value.missingOk
-      ResolutionTasks.resolutionsTask(
-        sbtClassifiers = true,
-        missingOk = missingOk,
-      )
-    }).value
+    coursierSbtClassifiersResolutions :=
+      (Def.taskDyn {
+        val missingOk = (updateConfiguration in updateSbtClassifiers).value.missingOk
+        ResolutionTasks.resolutionsTask(
+          sbtClassifiers = true,
+          missingOk = missingOk,
+        )
+      }).value
   )
 
   override lazy val buildSettings = super.buildSettings ++ Seq(

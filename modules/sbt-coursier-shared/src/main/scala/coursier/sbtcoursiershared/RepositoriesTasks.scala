@@ -48,7 +48,10 @@ private[sbtcoursiershared] object RepositoriesTasks {
 
   }
 
-  private def resultTask(bootResOpt: Option[Seq[Resolver]], overrideFlag: Boolean): Def.Initialize[sbt.Task[Seq[Resolver]]] =
+  private def resultTask(
+    bootResOpt: Option[Seq[Resolver]],
+    overrideFlag: Boolean
+  ): Def.Initialize[sbt.Task[Seq[Resolver]]] =
     bootResOpt.filter(_ => overrideFlag) match {
       case Some(r) => Def.task(r)
       case None =>

@@ -89,7 +89,8 @@ object IvyXmlGeneration {
       }
     }.value
 
-  private lazy val needsIvyXmlLocal = Seq(sbt.Keys.publishLocalConfiguration) ++ getPubConf("makeIvyXmlLocalConfiguration")
+  private lazy val needsIvyXmlLocal = Seq(sbt.Keys.publishLocalConfiguration) ++
+    getPubConf("makeIvyXmlLocalConfiguration")
   private lazy val needsIvyXml = Seq(sbt.Keys.publishConfiguration) ++ getPubConf("makeIvyXmlConfiguration")
 
   private[this] def getPubConf(method: String): List[TaskKey[PublishConfiguration]] =
@@ -103,7 +104,6 @@ object IvyXmlGeneration {
         Nil
     }
 
-  def generateIvyXmlSettings: Seq[Setting[_]] =
-    (needsIvyXml ++ needsIvyXmlLocal).map(makeIvyXmlBefore)
+  def generateIvyXmlSettings: Seq[Setting[_]] = (needsIvyXml ++ needsIvyXmlLocal).map(makeIvyXmlBefore)
 
 }

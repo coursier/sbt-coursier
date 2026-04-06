@@ -58,75 +58,79 @@ private[internal] object SbtUpdateReport {
         .withIsTransitive(dependency.transitive)
   }
 
-  private val artifact = caching[(Module, Map[String, String], Publication, Artifact, Seq[ClassLoader]), sbt.librarymanagement.Artifact] {
-    case (module, extraProperties, pub, artifact, classLoaders) =>
-      sbt.librarymanagement.Artifact(pub.name)
-        .withType(pub.`type`.value)
-        .withExtension(pub.ext.value)
-        .withClassifier(
-          Some(pub.classifier)
-            .filter(_.nonEmpty)
-            .orElse(MavenAttributes.typeDefaultClassifierOpt(pub.`type`))
-            .map(_.value)
-        )
-        .withUrl(Some(CacheUrl.url(artifact.url, classLoaders)))
-        .withExtraAttributes(module.attributes ++ extraProperties)
-  }
+  private val artifact =
+    caching[(Module, Map[String, String], Publication, Artifact, Seq[ClassLoader]), sbt.librarymanagement.Artifact] {
+      case (module, extraProperties, pub, artifact, classLoaders) =>
+        sbt.librarymanagement.Artifact(pub.name)
+          .withType(pub.`type`.value)
+          .withExtension(pub.ext.value)
+          .withClassifier(
+            Some(pub.classifier)
+              .filter(_.nonEmpty)
+              .orElse(MavenAttributes.typeDefaultClassifierOpt(pub.`type`))
+              .map(_.value)
+          )
+          .withUrl(Some(CacheUrl.url(artifact.url, classLoaders)))
+          .withExtraAttributes(module.attributes ++ extraProperties)
+    }
 
-  private val moduleReport = caching[(Dependency, Seq[(Dependency, ProjectInfo)], Project, Seq[(Publication, Artifact, Option[File])], Seq[ClassLoader]), ModuleReport] {
+  private val moduleReport = caching[
+    (Dependency, Seq[(Dependency, ProjectInfo)], Project, Seq[(Publication, Artifact, Option[File])], Seq[ClassLoader]),
+    ModuleReport
+  ] {
     case (dependency, dependees, project, artifacts, classLoaders) =>
 
-    val sbtArtifacts = artifacts.collect {
-      case (pub, artifact0, Some(file)) =>
-        (artifact((dependency.module, infoProperties(project).toMap, pub, artifact0, classLoaders)), file)
-    }
-    val sbtMissingArtifacts = artifacts.collect {
-      case (pub, artifact0, None) =>
-        artifact((dependency.module, infoProperties(project).toMap, pub, artifact0, classLoaders))
-    }
+      val sbtArtifacts = artifacts.collect {
+        case (pub, artifact0, Some(file)) =>
+          (artifact((dependency.module, infoProperties(project).toMap, pub, artifact0, classLoaders)), file)
+      }
+      val sbtMissingArtifacts = artifacts.collect {
+        case (pub, artifact0, None) =>
+          artifact((dependency.module, infoProperties(project).toMap, pub, artifact0, classLoaders))
+      }
 
-    val publicationDate = project.info.publication.map { dt =>
-      new GregorianCalendar(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
-    }
+      val publicationDate = project.info.publication.map { dt =>
+        new GregorianCalendar(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+      }
 
-    val callers = dependees.distinct.map {
-      case (dependee, dependeeProj) =>
-        Caller(
-          moduleId((dependee, dependeeProj.version, Map.empty)),
-          // FIXME Shouldn't we only keep the configurations pulling dependency?
-          dependeeProj.configs,
-          dependee.module.attributes ++ dependeeProj.properties,
-          // FIXME Set better values here
-          isForceDependency = false,
-          isChangingDependency = false,
-          isTransitiveDependency = dependency.transitive,
-          isDirectlyForceDependency = false
-        )
-    }
+      val callers = dependees.distinct.map {
+        case (dependee, dependeeProj) =>
+          Caller(
+            moduleId((dependee, dependeeProj.version, Map.empty)),
+            // FIXME Shouldn't we only keep the configurations pulling dependency?
+            dependeeProj.configs,
+            dependee.module.attributes ++ dependeeProj.properties,
+            // FIXME Set better values here
+            isForceDependency = false,
+            isChangingDependency = false,
+            isTransitiveDependency = dependency.transitive,
+            isDirectlyForceDependency = false
+          )
+      }
 
-    val rep = ModuleReport(
-      moduleId((dependency, project.version, infoProperties(project).toMap)),
-      sbtArtifacts.toVector,
-      sbtMissingArtifacts.toVector
-    )
+      val rep = ModuleReport(
+        moduleId((dependency, project.version, infoProperties(project).toMap)),
+        sbtArtifacts.toVector,
+        sbtMissingArtifacts.toVector
+      )
 
-    rep
-      // .withStatus(None)
-      .withPublicationDate(publicationDate)
-      // .withResolver(None)
-      // .withArtifactResolver(None)
-      // .withEvicted(false)
-      // .withEvictedData(None)
-      // .withEvictedReason(None)
-      // .withProblem(None)
-      .withHomepage(Some(project.info.homePage).filter(_.nonEmpty))
-      .withLicenses(project.info.licenses.toVector)
-      .withExtraAttributes(dependency.module.attributes ++ infoProperties(project))
-      // .withIsDefault(None)
-      // .withBranch(None)
-      .withConfigurations(project.configurations.keys.toVector.map(c => ConfigRef(c.value)))
-      .withLicenses(project.info.licenses.toVector)
-      .withCallers(callers.toVector)
+      rep
+        // .withStatus(None)
+        .withPublicationDate(publicationDate)
+        // .withResolver(None)
+        // .withArtifactResolver(None)
+        // .withEvicted(false)
+        // .withEvictedData(None)
+        // .withEvictedReason(None)
+        // .withProblem(None)
+        .withHomepage(Some(project.info.homePage).filter(_.nonEmpty))
+        .withLicenses(project.info.licenses.toVector)
+        .withExtraAttributes(dependency.module.attributes ++ infoProperties(project))
+        // .withIsDefault(None)
+        // .withBranch(None)
+        .withConfigurations(project.configurations.keys.toVector.map(c => ConfigRef(c.value)))
+        .withLicenses(project.info.licenses.toVector)
+        .withCallers(callers.toVector)
   }
 
   private def moduleReports(
@@ -205,10 +209,11 @@ private[internal] object SbtUpdateReport {
       fromLib ++ fromInterProj
     }
 
-    val versions = (Vector(Dependency(thisModule._1, thisModule._2)) ++ res.dependencies.toVector ++ res.rootDependencies.toVector)
-      .map { dep =>
-        dep.module -> dep.version
-      }.toMap
+    val versions =
+      (Vector(Dependency(thisModule._1, thisModule._2)) ++ res.dependencies.toVector ++ res.rootDependencies.toVector)
+        .map { dep =>
+          dep.module -> dep.version
+        }.toMap
 
     def clean(dep: Dependency): Dependency =
       dep
@@ -220,7 +225,7 @@ private[internal] object SbtUpdateReport {
       res.projectCache.get(mv) match {
         case Some((_, p)) => Some(p)
         case _ =>
-          interProjectDependencies.find( p =>
+          interProjectDependencies.find(p =>
             mv == (p.module, p.version)
           )
       }
@@ -247,9 +252,7 @@ private[internal] object SbtUpdateReport {
 
     val m = Dependency(thisModule._1, "")
     val directReverseDependencies = res.rootDependencies.toSet.map(clean).map(_.withVersion(""))
-      .map(
-        dep => dep -> Vector(m)
-      )
+      .map(dep => dep -> Vector(m))
       .toMap
 
     val reverseDependencies = {
@@ -281,10 +284,14 @@ private[internal] object SbtUpdateReport {
             val dependee = dependee0.withVersion(version)
             lookupProject(dependee.moduleVersion) match {
               case Some(dependeeProj) =>
-                Vector((dependee, ProjectInfo(
-                  dependeeProj.version,
-                  dependeeProj.configurations.keys.toVector.map(c => ConfigRef(c.value)),
-                  dependeeProj.properties)))
+                Vector((
+                  dependee,
+                  ProjectInfo(
+                    dependeeProj.version,
+                    dependeeProj.configurations.keys.toVector.map(c => ConfigRef(c.value)),
+                    dependeeProj.properties
+                  )
+                ))
               case _ =>
                 Vector.empty
             }
@@ -348,8 +355,8 @@ private[internal] object SbtUpdateReport {
             val mod = moduleId((dep, proj.version, infoProperties(proj).toMap))
             val (main, other) = reports.partition { r =>
               r.module.organization == mod.organization &&
-                  r.module.name == mod.name &&
-                  r.module.crossVersion == mod.crossVersion
+              r.module.name == mod.name &&
+              r.module.crossVersion == mod.crossVersion
             }
             main ++ other
           case _ => reports
@@ -379,15 +386,16 @@ private[internal] object SbtUpdateReport {
           val dep = Dependency(c.module, c.wantedVersion)
           val dependee = Dependency(c.dependeeModule, c.dependeeVersion)
           val dependeeProj = subRes.projectCache.get((c.dependeeModule, c.dependeeVersion)) match {
-              case Some((_, p)) =>
-                ProjectInfo(p.version, p.configurations.keys.toVector.map(c => ConfigRef(c.value)), p.properties)
-              case None =>
-                // should not happen
-                ProjectInfo(c.dependeeVersion, Vector.empty, Vector.empty)
-            }
-          val rep = moduleReport((dep, Seq((dependee, dependeeProj)), proj.withVersion(c.wantedVersion), Nil, classLoaders))
-            .withEvicted(true)
-            .withEvictedData(Some("version selection")) // ??? put latest-revision like sbt/ivy here?
+            case Some((_, p)) =>
+              ProjectInfo(p.version, p.configurations.keys.toVector.map(c => ConfigRef(c.value)), p.properties)
+            case None =>
+              // should not happen
+              ProjectInfo(c.dependeeVersion, Vector.empty, Vector.empty)
+          }
+          val rep =
+            moduleReport((dep, Seq((dependee, dependeeProj)), proj.withVersion(c.wantedVersion), Nil, classLoaders))
+              .withEvicted(true)
+              .withEvictedData(Some("version selection")) // ??? put latest-revision like sbt/ivy here?
           OrganizationArtifactReport(c.module.organization.value, c.module.name.value, Vector(rep))
         }
 

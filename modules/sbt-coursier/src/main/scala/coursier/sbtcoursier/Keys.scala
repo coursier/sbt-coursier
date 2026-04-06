@@ -27,7 +27,6 @@ object Keys {
 
   val coursierConfigurations = TaskKey[Map[Configuration, Set[Configuration]]]("coursier-configurations")
 
-
   val coursierParentProjectCache = TaskKey[Map[Seq[Resolver], Seq[ProjectCache]]]("coursier-parent-project-cache")
   val coursierResolutions = TaskKey[Map[Configuration, Resolution]]("coursier-resolutions")
 

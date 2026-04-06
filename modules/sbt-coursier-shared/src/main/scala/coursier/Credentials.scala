@@ -48,7 +48,6 @@ object Credentials {
     private val filePasswordKeys = Seq("password", "pwd", "pass", "passwd")
   }
 
-
   @deprecated("Use coursierExtraCredentials rather than coursierCredentials", "1.1.0-M14")
   def apply(user: String, password: String): Credentials =
     Direct(user, password)

@@ -16,12 +16,14 @@ class ResolutionRunSpec extends AnyFunSuite with Matchers {
     )
 
   test("503 is a transient resolution error") {
-    val err = cantDownload("Server returned HTTP response code: 503 for URL: https://repo.example.com/org/mod/1.0/mod-1.0.pom")
+    val err =
+      cantDownload("Server returned HTTP response code: 503 for URL: https://repo.example.com/org/mod/1.0/mod-1.0.pom")
     ResolutionRun.isTransientResolutionError(err) shouldBe true
   }
 
   test("500 is a transient resolution error") {
-    val err = cantDownload("Server returned HTTP response code: 500 for URL: https://repo.example.com/org/mod/1.0/mod-1.0.pom")
+    val err =
+      cantDownload("Server returned HTTP response code: 500 for URL: https://repo.example.com/org/mod/1.0/mod-1.0.pom")
     ResolutionRun.isTransientResolutionError(err) shouldBe true
   }
 
@@ -31,7 +33,8 @@ class ResolutionRunSpec extends AnyFunSuite with Matchers {
   }
 
   test("404 is not a transient resolution error") {
-    val err = cantDownload("Server returned HTTP response code: 404 for URL: https://repo.example.com/org/mod/1.0/mod-1.0.pom")
+    val err =
+      cantDownload("Server returned HTTP response code: 404 for URL: https://repo.example.com/org/mod/1.0/mod-1.0.pom")
     ResolutionRun.isTransientResolutionError(err) shouldBe false
   }
 }
