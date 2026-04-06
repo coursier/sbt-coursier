@@ -15,7 +15,7 @@ jobs:
       with:
         fetch-depth: 0
         submodules: false
-    - uses: coursier/setup-action@v2.0
+    - uses: coursier/setup-action@v3.0
       with:
         jvm: 8
         apps: sbt
