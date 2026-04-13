@@ -1,4 +1,3 @@
-
 resolvers += Resolver.file("buggy", file("repo"))(
   Patterns(
     ivyPatterns = Vector("[organization]/[module]/[revision]/ivy.xml"),
@@ -9,5 +8,5 @@ resolvers += Resolver.file("buggy", file("repo"))(
   )
 )
 
-libraryDependencies += "a" % "b" % "1.0.0" % "compile->runtime" artifacts(Artifact("b1", "jar", "jar"))
-libraryDependencies += "a" % "b" % "1.0.0" % "test->runtime" artifacts(Artifact("b1", "jar", "jar"))
+libraryDependencies += "a" % "b" % "1.0.0" % "compile->runtime" artifacts (Artifact("b1", "jar", "jar"))
+libraryDependencies += "a" % "b" % "1.0.0" % "test->runtime" artifacts (Artifact("b1", "jar", "jar"))

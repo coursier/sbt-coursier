@@ -1,4 +1,3 @@
-
 scalaVersion := "2.12.8"
 
 organization := "io.get-coursier.test"

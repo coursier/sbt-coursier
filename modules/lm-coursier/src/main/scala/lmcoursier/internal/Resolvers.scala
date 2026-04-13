@@ -83,7 +83,7 @@ object Resolvers {
 
       case r: FileRepository
           if r.patterns.ivyPatterns.lengthCompare(1) == 0 &&
-            r.patterns.artifactPatterns.lengthCompare(1) == 0 =>
+          r.patterns.artifactPatterns.lengthCompare(1) == 0 =>
 
         val mavenCompatibleBaseOpt0 = mavenCompatibleBaseOpt(r.patterns)
 
@@ -159,7 +159,7 @@ object Resolvers {
 
   private def patternMatchGuard(patterns: Patterns): Boolean =
     patterns.ivyPatterns.lengthCompare(1) == 0 &&
-      patterns.artifactPatterns.lengthCompare(1) == 0
+    patterns.artifactPatterns.lengthCompare(1) == 0
 
   private def parseMavenCompatResolver(
     log: Logger,

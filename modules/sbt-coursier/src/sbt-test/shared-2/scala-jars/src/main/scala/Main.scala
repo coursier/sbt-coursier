@@ -11,9 +11,10 @@ object Main extends App {
     if (loader != null) {
       loader match {
         case u: java.net.URLClassLoader =>
-          cp ++= u.getURLs
-            .map(_.toURI)
-            .map(new File(_))
+          cp ++=
+            u.getURLs
+              .map(_.toURI)
+              .map(new File(_))
         case _ =>
       }
 
@@ -44,8 +45,8 @@ object Main extends App {
     for (jar <- jars)
       assert(
         !jar.getAbsolutePath.startsWith(home) ||
-          !jar.getAbsolutePath.toLowerCase(java.util.Locale.ROOT).contains("coursier") ||
-          prefixes.exists(jar.getAbsolutePath.startsWith),
+        !jar.getAbsolutePath.toLowerCase(java.util.Locale.ROOT).contains("coursier") ||
+        prefixes.exists(jar.getAbsolutePath.startsWith),
         s"JAR for $name ($jar) under $home and not under any of ${prefixes.mkString(", ")}"
       )
   }

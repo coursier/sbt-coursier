@@ -1,4 +1,3 @@
-
 val org = "io.get-coursier.scriptedtest"
 val ver = "0.1.0-SNAPSHOT"
 
@@ -12,7 +11,6 @@ lazy val bar = project
     shared,
     libraryDependencies += org %% "foo" % ver
   )
-
 
 lazy val shared = Seq(
   organization := org,
@@ -77,6 +75,5 @@ lazy val shared = Seq(
     )
   }
 )
-
 
 lazy val confCheck = TaskKey[Unit]("confCheck")

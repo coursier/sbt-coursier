@@ -1,4 +1,3 @@
-
 scalaVersion := appConfiguration.value.provider.scalaProvider.version
 
 lazy val updateSbtClassifiersCheck = TaskKey[Unit]("updateSbtClassifiersCheck")
@@ -17,20 +16,19 @@ updateSbtClassifiersCheck := {
     .map(_.modules)
     .getOrElse(Nil)
 
-  def artifacts(org: String, name: String) =
-    (defaultModules ++ compileModules)
-      .map { m =>
-        println(s"Found module $m")
-        m
-      }
-      .collect {
-        case moduleReport
+  def artifacts(org: String, name: String) = (defaultModules ++ compileModules)
+    .map { m =>
+      println(s"Found module $m")
+      m
+    }
+    .collect {
+      case moduleReport
           if moduleReport.module.organization == org &&
-               moduleReport.module.name == name =>
-          moduleReport.artifacts
-      }
-      .toSeq
-      .flatten
+          moduleReport.module.name == name =>
+        moduleReport.artifacts
+    }
+    .toSeq
+    .flatten
 
   def ensureHasArtifact(orgName: (String, String)*) =
     assert(

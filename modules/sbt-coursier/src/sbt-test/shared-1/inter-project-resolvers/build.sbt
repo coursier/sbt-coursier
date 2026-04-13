@@ -1,4 +1,3 @@
-
 lazy val a = project
   .settings(sharedSettings)
   .settings(
@@ -17,7 +16,6 @@ lazy val root = project
   .in(file("."))
   .aggregate(a, b)
   .settings(sharedSettings)
-
 
 lazy val sharedSettings = Seq(
   scalaVersion := "2.12.8"

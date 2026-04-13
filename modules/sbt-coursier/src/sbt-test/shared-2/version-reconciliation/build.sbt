@@ -1,4 +1,3 @@
-
 lazy val shared = Seq(
   scalaVersion := "2.12.8",
   libraryDependencies ++= Seq(

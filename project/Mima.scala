@@ -1,4 +1,3 @@
-
 import com.typesafe.tools.mima.plugin.MimaPlugin
 import com.typesafe.tools.mima.plugin.MimaKeys._
 import sbt._

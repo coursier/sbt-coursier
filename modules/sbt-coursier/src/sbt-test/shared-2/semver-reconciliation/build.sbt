@@ -1,4 +1,3 @@
-
 lazy val semver61 = project
   .settings(
     scalaVersion := "2.11.12",
@@ -28,4 +27,3 @@ lazy val strict62 = project
     ),
     versionReconciliation += "*" % "*" % "strict"
   )
-

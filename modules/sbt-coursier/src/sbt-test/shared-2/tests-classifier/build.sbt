@@ -1,4 +1,3 @@
-
 val org = "io.get-coursier.tests"
 val nme = "coursier-test-a"
 val ver = "0.1-SNAPSHOT"
@@ -19,4 +18,3 @@ lazy val b = project
       org %% nme % ver % "test" classifier "tests"
     )
   )
-

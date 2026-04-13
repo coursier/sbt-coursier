@@ -1,4 +1,3 @@
-
 lazy val b = project
   .settings(
     apiURL := Some(url(s"http://example.org/b")),

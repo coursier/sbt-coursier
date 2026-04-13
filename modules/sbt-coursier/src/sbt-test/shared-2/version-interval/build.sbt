@@ -1,6 +1,4 @@
-
 libraryDependencies += "org.json4s" %% "json4s-native" % "[3.3.0,3.5.0)"
-
 
 lazy val actualVersionCheck = taskKey[Unit]("")
 

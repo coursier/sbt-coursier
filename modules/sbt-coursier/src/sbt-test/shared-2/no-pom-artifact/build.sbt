@@ -1,4 +1,3 @@
-
 lazy val noPomCheck = TaskKey[Unit]("noPomCheck")
 
 noPomCheck := {
