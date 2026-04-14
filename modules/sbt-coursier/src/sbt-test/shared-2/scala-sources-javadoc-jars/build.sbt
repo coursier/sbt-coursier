@@ -1,4 +1,3 @@
-
 scalaVersion := appConfiguration.value.provider.scalaProvider.version
 
 lazy val updateClassifiersCheck = TaskKey[Unit]("updateClassifiersCheck")
@@ -17,8 +16,8 @@ updateClassifiersCheck := {
     .modules
     .collectFirst {
       case moduleReport
-        if moduleReport.module.organization == "org.scala-lang" &&
-             moduleReport.module.name == "scala-library" =>
+          if moduleReport.module.organization == "org.scala-lang" &&
+          moduleReport.module.name == "scala-library" =>
         moduleReport.artifacts
     }
     .toSeq

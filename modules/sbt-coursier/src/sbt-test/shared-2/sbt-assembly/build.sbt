@@ -1,4 +1,3 @@
-
 lazy val noJbossInterceptorCheck = TaskKey[Unit]("noJbossInterceptorCheck")
 
 noJbossInterceptorCheck := {

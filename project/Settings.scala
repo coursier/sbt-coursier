@@ -1,4 +1,3 @@
-
 import java.util.Locale
 
 import sbt._
@@ -56,20 +55,20 @@ object Settings {
 
   lazy val plugin =
     shared ++
-    Seq(
-      // https://github.com/sbt/sbt/issues/5049#issuecomment-528960415
-      dependencyOverrides := "org.scala-sbt" % "sbt" % targetSbtVersion :: Nil,
-      scriptedLaunchOpts ++= Seq(
-        "-Xmx1024M",
-        "-Dplugin.name=" + name.value,
-        "-Dplugin.version=" + version.value,
-        "-Dsbttest.base=" + (sourceDirectory.value / "sbt-test").getAbsolutePath,
-        "-Dcoursier.sbt-launcher.add-plugin=false"
-      ),
-      scriptedBufferLog := false,
-      sbtPlugin := true,
-      pluginCrossBuild / sbtVersion := targetSbtVersion
-    )
+      Seq(
+        // https://github.com/sbt/sbt/issues/5049#issuecomment-528960415
+        dependencyOverrides := "org.scala-sbt" % "sbt" % targetSbtVersion :: Nil,
+        scriptedLaunchOpts ++= Seq(
+          "-Xmx1024M",
+          "-Dplugin.name=" + name.value,
+          "-Dplugin.version=" + version.value,
+          "-Dsbttest.base=" + (sourceDirectory.value / "sbt-test").getAbsolutePath,
+          "-Dcoursier.sbt-launcher.add-plugin=false"
+        ),
+        scriptedBufferLog := false,
+        sbtPlugin := true,
+        pluginCrossBuild / sbtVersion := targetSbtVersion
+      )
 
   lazy val generatePropertyFile =
     Compile / resourceGenerators += Def.task {

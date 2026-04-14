@@ -1,4 +1,3 @@
-
 case class A(msg: String)
 
 object A {

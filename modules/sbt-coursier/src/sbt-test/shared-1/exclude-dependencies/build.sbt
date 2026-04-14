@@ -1,4 +1,3 @@
-
 lazy val a = project
   .settings(
     organization := "io.get-coursier.test",

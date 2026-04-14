@@ -15,8 +15,7 @@ def checkClasspath(conf: Configuration) =
       val loader = ClasspathUtilities.toLoader(cp.files)
       Class.forName("org.jsoup.Jsoup", false, loader)
       ()
-    }
-    catch {
+    } catch {
       case _: ClassNotFoundException => sys.error(s"could not instantiate org.jsoup.Jsoup: ${cp.files}")
     }
   }

@@ -1,7 +1,7 @@
 package t
 
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{ MustMatchers, WordSpec }
+import org.scalatest.{MustMatchers, WordSpec}
 
 class UnitSpec extends WordSpec with MustMatchers {
   def conf = ConfigFactory.defaultReference()

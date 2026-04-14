@@ -1,7 +1,7 @@
 scalaVersion := "2.12.8"
 
 libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.41" from {
-  
+
   val f = file("shapeless_2.12-2.3.3.jar")
 
   if (!f.exists()) {
@@ -15,7 +15,7 @@ libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.41" from {
     val os = new java.io.FileOutputStream(f)
 
     var read = -1
-    val b = Array.fill[Byte](16*1024)(0)
+    val b = Array.fill[Byte](16 * 1024)(0)
     while ({
       read = is.read(b)
       read >= 0

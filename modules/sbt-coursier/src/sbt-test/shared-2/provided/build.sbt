@@ -1,4 +1,4 @@
-import sbt.librarymanagement.Configurations.{ CompileInternal, RuntimeInternal, TestInternal }
+import sbt.librarymanagement.Configurations.{CompileInternal, RuntimeInternal, TestInternal}
 
 libraryDependencies ++= Seq(
   "com.github.alexarchambault" %% "argonaut-shapeless_6.2" % "1.2.0-M5",

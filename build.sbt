@@ -1,4 +1,3 @@
-
 import Settings._
 
 def dataclassScalafixV = "0.2.0"
@@ -50,7 +49,7 @@ def lmIvy = Def.setting {
     scalaBinaryVersion.value match {
       case "2.12" => "1.3.4"
       case "2.13" => "1.7.0"
-      case _      => "2.0.0-alpha2"
+      case _ => "2.0.0-alpha2"
     }
   }
 }
@@ -206,10 +205,10 @@ lazy val `sbt-lm-coursier` = project
 
       // TODO Get those automatically
       // (but shouldn't scripted itself handle that…?)
-       (`lm-coursier-shaded` / publishLocal).value
-       (`sbt-coursier-shared-shaded` / publishLocal).value
-     }
-   )
+      (`lm-coursier-shaded` / publishLocal).value
+      (`sbt-coursier-shared-shaded` / publishLocal).value
+    }
+  )
 
 lazy val `sbt-coursier` = project
   .in(file("modules/sbt-coursier"))

@@ -19,10 +19,10 @@ check := {
   // Sanity check to ensure SBT is loading the resolvers properly
   assert(sbtResolvers.exists(_.name == "Private S3 Snapshots"))
   assert(sbtResolvers.exists(_.name == "Private S3 Releases"))
-  
+
   // Have Coursier SBT Plugin Parse the SBT Resolvers
   val parsedCoursierResolvers: Seq[coursier.core.Repository] =
-    sbtResolvers.flatMap{ sbtResolver: sbt.librarymanagement.Resolver =>
+    sbtResolvers.flatMap { sbtResolver: sbt.librarymanagement.Resolver =>
       lmcoursier.internal.Resolvers.repository(
         resolver = sbtResolver,
         ivyProperties = lmcoursier.internal.ResolutionParams.defaultIvyProperties(
@@ -49,8 +49,12 @@ check := {
     }
   }
 
-  assert(containsRepo("s3://s3-us-west-2.amazonaws.com/bucket-name/snapshots/"),
-    "Didn't have snapshots s3 repo")
-  assert(containsRepo("s3://s3-us-west-2.amazonaws.com/bucket-name/releases/"),
-    "Didn't have releases s3 repo")
+  assert(
+    containsRepo("s3://s3-us-west-2.amazonaws.com/bucket-name/snapshots/"),
+    "Didn't have snapshots s3 repo"
+  )
+  assert(
+    containsRepo("s3://s3-us-west-2.amazonaws.com/bucket-name/releases/"),
+    "Didn't have releases s3 repo"
+  )
 }
