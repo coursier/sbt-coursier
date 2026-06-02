@@ -72,7 +72,7 @@ lazy val definitions = project
 
 // FIXME Ideally, we should depend on the same version of io.get-coursier.jniutils:windows-jni-utils that
 // io.get-coursier::coursier depends on.
-val jniUtilsVersion = "0.3.3"
+val jniUtilsVersion = "0.3.4"
 
 lazy val `lm-coursier` = project
   .in(file("modules/lm-coursier"))
