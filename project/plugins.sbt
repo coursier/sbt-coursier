@@ -1,6 +1,6 @@
 addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.12.1")
 addSbtPlugin("com.typesafe" % "sbt-mima-plugin" % "1.1.6")
-addSbtPlugin("io.get-coursier" % "sbt-shading" % "2.1.7")
+addSbtPlugin("io.get-coursier" % "sbt-shading" % "2.1.8")
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.14.7")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.6.2")
 
