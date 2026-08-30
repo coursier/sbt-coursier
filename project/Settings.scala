@@ -9,17 +9,10 @@ import com.jsuereth.sbtpgp._
 object Settings {
 
   def scala212 = "2.12.20"
-  def scala213 = "2.13.16"
 
   def targetSbtVersion = "1.2.8"
 
-  private lazy val isAtLeastScala213 = Def.setting {
-    import Ordering.Implicits._
-    CrossVersion.partialVersion(scalaVersion.value).exists(_ >= (2, 13))
-  }
-
   lazy val shared = Seq(
-    crossScalaVersions := Seq(scala212),
     scalaVersion := scala212,
     scalacOptions ++= Seq(
       "-feature",
@@ -27,21 +20,7 @@ object Settings {
       "-language:higherKinds",
       "-language:implicitConversions"
     ),
-    libraryDependencies ++= {
-      if (isAtLeastScala213.value) Nil
-      else Seq(compilerPlugin("org.scalamacros" % s"paradise" % "2.1.1" cross CrossVersion.full))
-    },
-    scalacOptions ++= {
-      if (isAtLeastScala213.value) Seq("-Ymacro-annotations")
-      else Nil
-    },
-    libraryDependencySchemes ++= {
-      val sv = scalaVersion.value
-      if (sv.startsWith("2.13."))
-        Seq("org.scala-lang.modules" %% "scala-xml" % "always")
-      else
-        Nil
-    }
+    libraryDependencies += compilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
   ) ++ {
     val prop = sys.props.getOrElse("publish.javadoc", "").toLowerCase(Locale.ROOT)
     if (prop == "0" || prop == "false")
