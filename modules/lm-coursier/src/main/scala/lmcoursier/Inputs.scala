@@ -15,7 +15,8 @@ object Inputs {
         Configuration(from.value) -> Configuration(to.value)
     }
 
-  def configExtendsSeq(configurations: Seq[sbt.librarymanagement.Configuration]): Seq[(Configuration, Seq[Configuration])] =
+  def configExtendsSeq(configurations: Seq[sbt.librarymanagement.Configuration])
+    : Seq[(Configuration, Seq[Configuration])] =
     configurations
       .map(cfg => Configuration(cfg.name) -> cfg.extendsConfigs.map(c => Configuration(c.name)))
 
@@ -26,10 +27,14 @@ object Inputs {
       .toMap
 
   @deprecated("Use coursierConfigurationsMap instead", "2.0.0-RC6-5")
-  def coursierConfigurations(configurations: Seq[sbt.librarymanagement.Configuration], shadedConfigOpt: Option[String] = None): Map[Configuration, Set[Configuration]] =
+  def coursierConfigurations(
+    configurations: Seq[sbt.librarymanagement.Configuration],
+    shadedConfigOpt: Option[String] = None
+  ): Map[Configuration, Set[Configuration]] =
     coursierConfigurationsMap(configurations)
 
-  def coursierConfigurationsMap(configurations: Seq[sbt.librarymanagement.Configuration]): Map[Configuration, Set[Configuration]] = {
+  def coursierConfigurationsMap(configurations: Seq[sbt.librarymanagement.Configuration])
+    : Map[Configuration, Set[Configuration]] = {
 
     val configs0 = configExtendsSeq(configurations).toMap
 

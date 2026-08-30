@@ -1,7 +1,9 @@
 package lmcoursier
 
 import coursier.ivy.IvyXml.{mappings => ivyXmlMappings}
-import lmcoursier.definitions.{Classifier, Configuration, Dependency, Extension, Info, Module, ModuleName, Organization, Project, Publication, Type}
+import lmcoursier.definitions.{
+  Classifier, Configuration, Dependency, Extension, Info, Module, ModuleName, Organization, Project, Publication, Type
+}
 import sbt.internal.librarymanagement.mavenint.SbtPomExtraProperties
 import sbt.librarymanagement.{Configuration => _, MavenRepository => _, _}
 
@@ -43,7 +45,8 @@ object FromSbt {
 
     val fullName = sbtModuleIdName(module, scalaVersion, scalaBinaryVersion, optionalCrossVer)
 
-    val module0 = Module(Organization(module.organization), ModuleName(fullName), attributes(module.extraDependencyAttributes))
+    val module0 =
+      Module(Organization(module.organization), ModuleName(fullName), attributes(module.extraDependencyAttributes))
     val version = module.revision
 
     (module0, version)

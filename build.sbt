@@ -1,7 +1,6 @@
-
 import Settings._
 
-def dataclassScalafixV = "0.2.0"
+def dataclassScalafixV = "0.3.0"
 
 inThisBuild(List(
   organization := "io.get-coursier",
@@ -15,16 +14,14 @@ inThisBuild(List(
       url("https://github.com/alexarchambault")
     )
   ),
+  Test / fork := true,
   semanticdbEnabled := true,
   semanticdbVersion := "4.13.10",
   scalafixDependencies += "net.hamnaberg" %% "dataclass-scalafix" % dataclassScalafixV,
   libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % "always"
 ))
 
-Global / excludeLintKeys += scriptedBufferLog
-Global / excludeLintKeys += scriptedLaunchOpts
-
-def coursierVersion0 = "2.1.25-M23"
+def coursierVersion0 = "2.1.23"
 def coursierDep = ("io.get-coursier" %% "coursier" % coursierVersion0)
   .exclude("org.codehaus.plexus", "plexus-archiver")
   .exclude("org.codehaus.plexus", "plexus-container-default")
@@ -44,16 +41,6 @@ def dataclassGen(data: Reference) = Def.taskDyn {
   }
 }
 
-def lmIvy = Def.setting {
-  "org.scala-sbt" %% "librarymanagement-ivy" % {
-    scalaBinaryVersion.value match {
-      case "2.12" => "1.3.4"
-      case "2.13" => "1.7.0"
-      case _      => "2.0.0-alpha2"
-    }
-  }
-}
-
 lazy val preTest = taskKey[Unit]("prep steps before tests")
 
 lazy val definitions = project
@@ -61,24 +48,22 @@ lazy val definitions = project
   .disablePlugins(MimaPlugin)
   .settings(
     shared,
-    crossScalaVersions := Seq(scala212),
     libraryDependencies ++= Seq(
       coursierDep,
       "net.hamnaberg" %% "dataclass-annotation" % dataclassScalafixV % Provided,
-      lmIvy.value,
+      "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.4",
     ),
     dontPublish,
   )
 
 // FIXME Ideally, we should depend on the same version of io.get-coursier.jniutils:windows-jni-utils that
 // io.get-coursier::coursier depends on.
-val jniUtilsVersion = "0.3.3"
+val jniUtilsVersion = "0.3.4"
 
 lazy val `lm-coursier` = project
   .in(file("modules/lm-coursier"))
   .settings(
     shared,
-    crossScalaVersions := Seq(scala212),
     Mima.settings,
     Mima.lmCoursierFilters,
     libraryDependencies ++= Seq(
@@ -91,16 +76,16 @@ lazy val `lm-coursier` = project
       // to DependencyResolutionInterface.update, which is an
       // IvySbt#Module (seems DependencyResolutionInterface.moduleDescriptor
       // is ignored).
-      lmIvy.value,
-      "org.scalatest" %% "scalatest" % "3.2.19" % Test
+      "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.4",
+      "com.lihaoyi" %% "fansi" % "0.5.1" % Test,
+      "org.scalatest" %% "scalatest" % "3.2.20" % Test
     ),
     Test / exportedProducts := {
       (Test / preTest).value
       (Test / exportedProducts).value
     },
     Test / preTest := {
-      (customProtocolForTest212 / publishLocal).value
-      (customProtocolForTest213 / publishLocal).value
+      (customProtocolForTest / publishLocal).value
       (customProtocolJavaForTest / publishLocal).value
     },
     Compile / sourceGenerators += dataclassGen(definitions).taskValue,
@@ -111,7 +96,6 @@ lazy val `lm-coursier-shaded` = project
   .enablePlugins(ShadingPlugin)
   .settings(
     shared,
-    crossScalaVersions := Seq(scala212),
     Mima.settings,
     Mima.lmCoursierFilters,
     Mima.lmCoursierShadedFilters,
@@ -163,87 +147,17 @@ lazy val `lm-coursier-shaded` = project
       "io.get-coursier.jniutils" % "windows-jni-utils-lmcoursier" % jniUtilsVersion,
       "net.hamnaberg" %% "dataclass-annotation" % dataclassScalafixV % Provided,
       "org.scala-lang.modules" %% "scala-collection-compat" % "2.14.0",
-      "org.scala-lang.modules" %% "scala-xml" % "2.3.0", // depending on that one so that it doesn't get shaded
+      "org.scala-lang.modules" %% "scala-xml" % "2.4.0", // depending on that one so that it doesn't get shaded
       "org.slf4j" % "slf4j-api" % "1.7.36", // depending on that one so that it doesn't get shaded either
-      lmIvy.value,
-      "org.scalatest" %% "scalatest" % "3.2.19" % Test
+      "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.4",
+      "org.scalatest" %% "scalatest" % "3.2.20" % Test
     )
   )
 
-lazy val `sbt-coursier-shared` = project
-  .in(file("modules/sbt-coursier-shared"))
-  .disablePlugins(MimaPlugin)
-  .dependsOn(`lm-coursier`)
+lazy val customProtocolForTest = project
+  .in(file("modules/custom-protocol-for-test"))
   .settings(
-    plugin,
-    generatePropertyFile,
-    libraryDependencies += "com.lihaoyi" %% "utest" % "0.9.5" % Test,
-    testFrameworks += new TestFramework("utest.runner.Framework"),
-    dontPublish
-  )
-
-lazy val `sbt-coursier-shared-shaded` = project
-  .in(file("modules/sbt-coursier-shared/target/shaded-module"))
-  .disablePlugins(MimaPlugin)
-  .dependsOn(`lm-coursier-shaded`)
-  .settings(
-    plugin,
-    generatePropertyFile,
-    Compile / unmanagedSourceDirectories := (`sbt-coursier-shared` / Compile / unmanagedSourceDirectories).value
-  )
-
-lazy val `sbt-lm-coursier` = project
-  .in(file("modules/sbt-lm-coursier"))
-  .enablePlugins(ScriptedPlugin)
-  .disablePlugins(MimaPlugin)
-  .dependsOn(`sbt-coursier-shared-shaded`)
-  .settings(
-    plugin,
-    sbtTestDirectory := (`sbt-coursier` / sbtTestDirectory).value,
-    scriptedDependencies := {
-      scriptedDependencies.value
-
-      // TODO Get those automatically
-      // (but shouldn't scripted itself handle that…?)
-       (`lm-coursier-shaded` / publishLocal).value
-       (`sbt-coursier-shared-shaded` / publishLocal).value
-     }
-   )
-
-lazy val `sbt-coursier` = project
-  .in(file("modules/sbt-coursier"))
-  .enablePlugins(ScriptedPlugin)
-  .disablePlugins(MimaPlugin)
-  .dependsOn(`sbt-coursier-shared`)
-  .settings(
-    plugin,
-    scriptedDependencies := {
-      scriptedDependencies.value
-
-      // TODO Get dependency projects automatically
-      // (but shouldn't scripted itself handle that…?)
-      (`lm-coursier` / publishLocal).value
-      (`sbt-coursier-shared` / publishLocal).value
-    },
-    dontPublish
-  )
-
-lazy val customProtocolForTest212 = project
-  .in(file("modules/custom-protocol-for-test-2-12"))
-  .settings(
-    sourceDirectory := file("modules/custom-protocol-for-test/src").toPath.toAbsolutePath.toFile,
     scalaVersion := scala212,
-    organization := "org.example",
-    moduleName := "customprotocol-handler",
-    version := "0.1.0",
-    dontPublish
-  )
-
-lazy val customProtocolForTest213 = project
-  .in(file("modules/custom-protocol-for-test-2-13"))
-  .settings(
-    sourceDirectory := file("modules/custom-protocol-for-test/src").toPath.toAbsolutePath.toFile,
-    scalaVersion := scala213,
     organization := "org.example",
     moduleName := "customprotocol-handler",
     version := "0.1.0",
@@ -266,11 +180,7 @@ lazy val `sbt-coursier-root` = project
   .aggregate(
     definitions,
     `lm-coursier`,
-    `lm-coursier-shaded`,
-    `sbt-coursier`,
-    `sbt-coursier-shared`,
-    `sbt-coursier-shared-shaded`,
-    `sbt-lm-coursier`
+    `lm-coursier-shaded`
   )
   .settings(
     shared,

@@ -9,7 +9,10 @@ import coursier.cache.{CacheDefaults, CachePolicy}
 import coursier.util.Artifact
 import coursier.internal.Typelevel
 import lmcoursier.definitions.ToCoursier
-import lmcoursier.internal.{ArtifactsParams, ArtifactsRun, CoursierModuleDescriptor, InterProjectRepository, ResolutionParams, ResolutionRun, Resolvers, SbtBootJars, UpdateParams, UpdateRun}
+import lmcoursier.internal.{
+  ArtifactsParams, ArtifactsRun, CoursierModuleDescriptor, InterProjectRepository, ResolutionParams, ResolutionRun,
+  Resolvers, SbtBootJars, UpdateParams, UpdateRun
+}
 import lmcoursier.syntax._
 import sbt.internal.librarymanagement.IvySbt
 import sbt.librarymanagement._
@@ -71,7 +74,7 @@ class CoursierDependencyResolution(
         ModuleID("lmcoursier", "lmcoursier", "0.1.0"),
         ModuleInfo("protocol-handler")
       )
-      .withDependencies(conf0.protocolHandlerDependencies.toVector)
+        .withDependencies(conf0.protocolHandlerDependencies.toVector)
 
     val reportOrUnresolved = resolution.update(moduleDescriptor(fakeModule), configuration, uwconfig, log)
 
@@ -136,11 +139,13 @@ class CoursierDependencyResolution(
         sys.error(s"unrecognized ModuleDescriptor type: $module")
     }
 
-    val so = conf.scalaOrganization.map(Organization(_))
-      .orElse(module0.scalaModuleInfo.map(m => Organization(m.scalaOrganization)))
-      .getOrElse(org"org.scala-lang")
-    val sv = conf.scalaVersion
-      .orElse(module0.scalaModuleInfo.map(_.scalaFullVersion))
+    // TODO: use with coursier.params.ResolutionParams.withScalaOrganizationOverride
+    val soOpt = module0.scalaModuleInfo.map(_.scalaOrganization)
+      .orElse(conf.scalaOrganization)
+      .map(Organization.apply)
+    val so = soOpt.getOrElse(org"org.scala-lang")
+    val sv = module0.scalaModuleInfo.map(_.scalaFullVersion)
+      .orElse(conf.scalaVersion)
       // FIXME Manage to do stuff below without a scala version?
       .getOrElse(scala.util.Properties.versionNumberString)
 
@@ -231,11 +236,12 @@ class CoursierDependencyResolution(
       }
       .toSet
 
+    val autoScalaLib = conf.autoScalaLibrary && module0.scalaModuleInfo.forall(_.overrideScalaVersion)
     val resolutionParams = ResolutionParams(
       dependencies = dependencies,
       fallbackDependencies = conf.fallbackDependencies,
       orderedConfigs = orderedConfigs,
-      autoScalaLibOpt = if (conf.autoScalaLibrary) Some((so, sv)) else None,
+      autoScalaLibOpt = if (autoScalaLib) Some((so, sv)) else None,
       mainRepositories = mainRepositories,
       parentProjectCache = Map.empty,
       interProjectDependencies = interProjectDependencies,
@@ -342,14 +348,14 @@ class CoursierDependencyResolution(
     }
 
     if (otherErrors.isEmpty) {
-        val r = new ResolveException(
-          downloadErrors.map(_.getMessage),
-          downloadErrors.map { err =>
-            ModuleID(err.module.organization.value, err.module.name.value, err.version)
-              .withExtraAttributes(err.module.attributes)
-          }
-        )
-        UnresolvedWarning(r, uwconfig)
+      val r = new ResolveException(
+        downloadErrors.map(_.getMessage),
+        downloadErrors.map { err =>
+          ModuleID(err.module.organization.value, err.module.name.value, err.version)
+            .withExtraAttributes(err.module.attributes)
+        }
+      )
+      UnresolvedWarning(r, uwconfig)
     } else
       throw ex
   }
@@ -359,8 +365,10 @@ object CoursierDependencyResolution {
   def apply(configuration: CoursierConfiguration): DependencyResolution =
     DependencyResolution(new CoursierDependencyResolution(configuration))
 
-  def apply(configuration: CoursierConfiguration,
-            protocolHandlerConfiguration: Option[CoursierConfiguration]): DependencyResolution =
+  def apply(
+    configuration: CoursierConfiguration,
+    protocolHandlerConfiguration: Option[CoursierConfiguration]
+  ): DependencyResolution =
     DependencyResolution(
       new CoursierDependencyResolution(
         configuration,

@@ -3,7 +3,9 @@ package lmcoursier
 import coursier.cache.CacheDefaults
 import lmcoursier.credentials._
 import lmcoursier.definitions._
-import sbt.librarymanagement.{Resolver, UpdateConfiguration, ModuleID, CrossVersion, ModuleInfo, ModuleDescriptorConfiguration}
+import sbt.librarymanagement.{
+  Resolver, UpdateConfiguration, ModuleID, CrossVersion, ModuleInfo, ModuleDescriptorConfiguration
+}
 import xsbti.Logger
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -162,7 +164,11 @@ package object syntax {
     def all: ModuleMatchers =
       ModuleMatchers(Set.empty, Set.empty)
     def only(organization: String, moduleName: String): ModuleMatchers =
-      ModuleMatchers(Set.empty, Set(Module(Organization(organization), ModuleName(moduleName), Map())), includeByDefault = false)
+      ModuleMatchers(
+        Set.empty,
+        Set(Module(Organization(organization), ModuleName(moduleName), Map())),
+        includeByDefault = false
+      )
     def only(mod: Module): ModuleMatchers =
       ModuleMatchers(Set.empty, Set(mod), includeByDefault = false)
   }

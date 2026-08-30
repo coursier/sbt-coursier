@@ -12,8 +12,8 @@ object Check {
       .map(_.getName)
       .filter { n =>
         !n.startsWith("META-INF/") && !n.startsWith(ns + "/") &&
-          n != "reflect.properties" && // scala-reflect adds that
-          !ignoreFiles(n)
+        n != "reflect.properties" && // scala-reflect adds that
+        !ignoreFiles(n)
       }
       .toVector
       .sorted

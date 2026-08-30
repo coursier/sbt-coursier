@@ -40,7 +40,7 @@ object ArtifactsRun {
       )
     }
 
-    Lock.maybeSynchronized(needsLock = params.loggerOpt.nonEmpty || !RefreshLogger.defaultFallbackMode){
+    Lock.maybeSynchronized(needsLock = params.loggerOpt.nonEmpty || !RefreshLogger.defaultFallbackMode) {
       result(params, coursierLogger)
     }
   }

@@ -8,7 +8,7 @@ import dataclass._
   optional: Boolean = false,
   realmOpt: Option[String] = None,
   @since("1.0")
-  headers: Seq[(String,String)] = Nil,
+  headers: Seq[(String, String)] = Nil,
   @since("1.1")
   httpsOnly: Boolean = true,
   @since("1.2")
