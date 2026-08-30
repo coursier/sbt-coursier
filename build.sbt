@@ -43,29 +43,32 @@ def dataclassGen(data: Reference) = Def.taskDyn {
 
 lazy val preTest = taskKey[Unit]("prep steps before tests")
 
+// Only a code generation input for lm-coursier, never published.
 lazy val definitions = project
   .in(file("modules/definitions"))
   .disablePlugins(MimaPlugin)
   .settings(
     shared,
+    publish / skip := true,
     libraryDependencies ++= Seq(
       coursierDep,
       "net.hamnaberg" %% "dataclass-annotation" % dataclassScalafixV % Provided,
       "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.4",
     ),
-    dontPublish,
   )
 
 // FIXME Ideally, we should depend on the same version of io.get-coursier.jniutils:windows-jni-utils that
 // io.get-coursier::coursier depends on.
 val jniUtilsVersion = "0.3.4"
 
+// Not published, only lm-coursier-shaded is. This project holds the sources
+// (which lm-coursier-shaded picks up via Compile / sources) and the tests.
 lazy val `lm-coursier` = project
   .in(file("modules/lm-coursier"))
+  .disablePlugins(MimaPlugin)
   .settings(
     shared,
-    Mima.settings,
-    Mima.lmCoursierFilters,
+    publish / skip := true,
     libraryDependencies ++= Seq(
       coursierDep,
       "io.get-coursier" %% "coursier-sbt-maven-repository" % coursierVersion0,
