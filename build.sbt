@@ -15,13 +15,25 @@ inThisBuild(List(
     )
   ),
   Test / fork := true,
+  // jline, pulled by librarymanagement-ivy, calls jansi 1.x APIs from its Windows
+  // terminal. Since coursier 2.1.25-M26, coursier-cache pulls jansi 2.x (via
+  // windows-ansi 0.0.6), which doesn't have those any more, and wins over the
+  // jansi classes jline bundles. Keep jline away from the terminal in tests, else
+  // they crash on Windows with
+  // NoSuchMethodError: org.fusesource.jansi.AnsiConsole.wrapOutputStream
+  Test / javaOptions += "-Djline.terminal=none",
   semanticdbEnabled := true,
   semanticdbVersion := "4.13.10",
   scalafixDependencies += "net.hamnaberg" %% "dataclass-scalafix" % dataclassScalafixV,
-  libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % "always"
+  libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % "always",
+  // the coursier modules we depend on are built from sources and published there
+  // by scripts/publish-local-coursier.sh
+  resolvers += MavenCache("coursier-snapshot", (ThisBuild / baseDirectory).value / "m2-repo")
 ))
 
-def coursierVersion0 = "2.1.23"
+// coursier version published locally by scripts/publish-local-coursier.sh (from the
+// coursier sources, at the tag pinned there)
+def coursierVersion0 = "SNAPSHOT"
 def coursierDep = ("io.get-coursier" %% "coursier" % coursierVersion0)
   .exclude("org.codehaus.plexus", "plexus-archiver")
   .exclude("org.codehaus.plexus", "plexus-container-default")
