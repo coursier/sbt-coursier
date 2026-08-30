@@ -21,9 +21,6 @@ inThisBuild(List(
   libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % "always"
 ))
 
-Global / excludeLintKeys += scriptedBufferLog
-Global / excludeLintKeys += scriptedLaunchOpts
-
 def coursierVersion0 = "2.1.23"
 def coursierDep = ("io.get-coursier" %% "coursier" % coursierVersion0)
   .exclude("org.codehaus.plexus", "plexus-archiver")
@@ -157,64 +154,6 @@ lazy val `lm-coursier-shaded` = project
     )
   )
 
-lazy val `sbt-coursier-shared` = project
-  .in(file("modules/sbt-coursier-shared"))
-  .disablePlugins(MimaPlugin)
-  .dependsOn(`lm-coursier`)
-  .settings(
-    plugin,
-    generatePropertyFile,
-    libraryDependencies += "com.lihaoyi" %% "utest" % "0.9.5" % Test,
-    testFrameworks += new TestFramework("utest.runner.Framework"),
-    dontPublish
-  )
-
-lazy val `sbt-coursier-shared-shaded` = project
-  .in(file("modules/sbt-coursier-shared/target/shaded-module"))
-  .disablePlugins(MimaPlugin)
-  .dependsOn(`lm-coursier-shaded`)
-  .settings(
-    plugin,
-    generatePropertyFile,
-    Compile / unmanagedSourceDirectories := (`sbt-coursier-shared` / Compile / unmanagedSourceDirectories).value
-  )
-
-lazy val `sbt-lm-coursier` = project
-  .in(file("modules/sbt-lm-coursier"))
-  .enablePlugins(ScriptedPlugin)
-  .disablePlugins(MimaPlugin)
-  .dependsOn(`sbt-coursier-shared-shaded`)
-  .settings(
-    plugin,
-    sbtTestDirectory := (`sbt-coursier` / sbtTestDirectory).value,
-    scriptedDependencies := {
-      scriptedDependencies.value
-
-      // TODO Get those automatically
-      // (but shouldn't scripted itself handle that…?)
-      (`lm-coursier-shaded` / publishLocal).value
-      (`sbt-coursier-shared-shaded` / publishLocal).value
-    }
-  )
-
-lazy val `sbt-coursier` = project
-  .in(file("modules/sbt-coursier"))
-  .enablePlugins(ScriptedPlugin)
-  .disablePlugins(MimaPlugin)
-  .dependsOn(`sbt-coursier-shared`)
-  .settings(
-    plugin,
-    scriptedDependencies := {
-      scriptedDependencies.value
-
-      // TODO Get dependency projects automatically
-      // (but shouldn't scripted itself handle that…?)
-      (`lm-coursier` / publishLocal).value
-      (`sbt-coursier-shared` / publishLocal).value
-    },
-    dontPublish
-  )
-
 lazy val customProtocolForTest = project
   .in(file("modules/custom-protocol-for-test"))
   .settings(
@@ -241,11 +180,7 @@ lazy val `sbt-coursier-root` = project
   .aggregate(
     definitions,
     `lm-coursier`,
-    `lm-coursier-shaded`,
-    `sbt-coursier`,
-    `sbt-coursier-shared`,
-    `sbt-coursier-shared-shaded`,
-    `sbt-lm-coursier`
+    `lm-coursier-shaded`
   )
   .settings(
     shared,
