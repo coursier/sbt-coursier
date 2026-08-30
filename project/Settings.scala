@@ -7,7 +7,7 @@ import com.jsuereth.sbtpgp._
 
 object Settings {
 
-  def scala212 = "2.12.20"
+  def scala212 = "2.12.21"
 
   lazy val shared = Seq(
     scalaVersion := scala212,
