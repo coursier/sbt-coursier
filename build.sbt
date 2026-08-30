@@ -44,16 +44,6 @@ def dataclassGen(data: Reference) = Def.taskDyn {
   }
 }
 
-def lmIvy = Def.setting {
-  "org.scala-sbt" %% "librarymanagement-ivy" % {
-    scalaBinaryVersion.value match {
-      case "2.12" => "1.3.4"
-      case "2.13" => "1.7.0"
-      case _ => "2.0.0-alpha2"
-    }
-  }
-}
-
 lazy val preTest = taskKey[Unit]("prep steps before tests")
 
 lazy val definitions = project
@@ -61,11 +51,10 @@ lazy val definitions = project
   .disablePlugins(MimaPlugin)
   .settings(
     shared,
-    crossScalaVersions := Seq(scala212),
     libraryDependencies ++= Seq(
       coursierDep,
       "net.hamnaberg" %% "dataclass-annotation" % dataclassScalafixV % Provided,
-      lmIvy.value,
+      "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.4",
     ),
     dontPublish,
   )
@@ -78,7 +67,6 @@ lazy val `lm-coursier` = project
   .in(file("modules/lm-coursier"))
   .settings(
     shared,
-    crossScalaVersions := Seq(scala212),
     Mima.settings,
     Mima.lmCoursierFilters,
     libraryDependencies ++= Seq(
@@ -91,7 +79,7 @@ lazy val `lm-coursier` = project
       // to DependencyResolutionInterface.update, which is an
       // IvySbt#Module (seems DependencyResolutionInterface.moduleDescriptor
       // is ignored).
-      lmIvy.value,
+      "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.4",
       "org.scalatest" %% "scalatest" % "3.2.20" % Test
     ),
     Test / exportedProducts := {
@@ -99,8 +87,7 @@ lazy val `lm-coursier` = project
       (Test / exportedProducts).value
     },
     Test / preTest := {
-      (customProtocolForTest212 / publishLocal).value
-      (customProtocolForTest213 / publishLocal).value
+      (customProtocolForTest / publishLocal).value
       (customProtocolJavaForTest / publishLocal).value
     },
     Compile / sourceGenerators += dataclassGen(definitions).taskValue,
@@ -111,7 +98,6 @@ lazy val `lm-coursier-shaded` = project
   .enablePlugins(ShadingPlugin)
   .settings(
     shared,
-    crossScalaVersions := Seq(scala212),
     Mima.settings,
     Mima.lmCoursierFilters,
     Mima.lmCoursierShadedFilters,
@@ -165,7 +151,7 @@ lazy val `lm-coursier-shaded` = project
       "org.scala-lang.modules" %% "scala-collection-compat" % "2.14.0",
       "org.scala-lang.modules" %% "scala-xml" % "2.4.0", // depending on that one so that it doesn't get shaded
       "org.slf4j" % "slf4j-api" % "1.7.36", // depending on that one so that it doesn't get shaded either
-      lmIvy.value,
+      "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.4",
       "org.scalatest" %% "scalatest" % "3.2.20" % Test
     )
   )
@@ -228,22 +214,10 @@ lazy val `sbt-coursier` = project
     dontPublish
   )
 
-lazy val customProtocolForTest212 = project
-  .in(file("modules/custom-protocol-for-test-2-12"))
+lazy val customProtocolForTest = project
+  .in(file("modules/custom-protocol-for-test"))
   .settings(
-    sourceDirectory := file("modules/custom-protocol-for-test/src").toPath.toAbsolutePath.toFile,
     scalaVersion := scala212,
-    organization := "org.example",
-    moduleName := "customprotocol-handler",
-    version := "0.1.0",
-    dontPublish
-  )
-
-lazy val customProtocolForTest213 = project
-  .in(file("modules/custom-protocol-for-test-2-13"))
-  .settings(
-    sourceDirectory := file("modules/custom-protocol-for-test/src").toPath.toAbsolutePath.toFile,
-    scalaVersion := scala213,
     organization := "org.example",
     moduleName := "customprotocol-handler",
     version := "0.1.0",
