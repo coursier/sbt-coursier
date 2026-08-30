@@ -103,6 +103,12 @@ lazy val `lm-coursier-shaded` = project
     Mima.lmCoursierFilters,
     Mima.lmCoursierShadedFilters,
     Compile / sources := (`lm-coursier` / Compile / sources).value,
+    // Publishing a mostly empty scaladoc JAR, not to push too much data
+    // upon each release, to stay under the Maven Central publishing limits.
+    // Empty mappings rather than only empty doc sources, so that a stale api
+    // directory doesn't get packaged.
+    Compile / doc / sources := Seq.empty,
+    Compile / packageDoc / mappings := Seq.empty,
     shadedModules ++= Set(
       "io.get-coursier" %% "coursier",
       "io.get-coursier" %% "coursier-sbt-maven-repository",
