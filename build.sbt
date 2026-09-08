@@ -156,7 +156,7 @@ lazy val `lm-coursier-shaded` = project
       "io.get-coursier.jniutils" % "windows-jni-utils-lmcoursier" % jniUtilsVersion,
       "net.hamnaberg" %% "dataclass-annotation" % dataclassScalafixV % Provided,
       "org.scala-lang.modules" %% "scala-collection-compat" % "2.14.0",
-      "org.scala-lang.modules" %% "scala-xml" % "2.4.0", // depending on that one so that it doesn't get shaded
+      "org.scala-lang.modules" %% "scala-xml" % "2.5.0", // depending on that one so that it doesn't get shaded
       "org.slf4j" % "slf4j-api" % "1.7.36", // depending on that one so that it doesn't get shaded either
       "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.4",
       "org.scalatest" %% "scalatest" % "3.2.20" % Test
