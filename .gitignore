@@ -9,3 +9,6 @@ metals.sbt
 
 # Intellij
 .idea/
+
+# coursier modules built from sources by scripts/publish-local-coursier.sh
+/m2-repo/

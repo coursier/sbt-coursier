@@ -8,6 +8,21 @@ on:
   pull_request:
 
 jobs:
+  coursier-snapshot:
+    name: coursier snapshot
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - uses: coursier/cache-action@v8.1
+    - name: Build and publish coursier locally
+      run: scripts/publish-local-coursier.sh
+      shell: bash
+    - uses: actions/upload-artifact@v7
+      with:
+        name: m2-repo
+        path: m2-repo
+        if-no-files-found: error
+
   formatting:
     runs-on: ubuntu-latest
     steps:
@@ -22,6 +37,7 @@ jobs:
     - run: sbt scalafmtCheckAll
 
   test:
+    needs: coursier-snapshot
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -43,11 +59,18 @@ jobs:
       with:
         jvm: 8
         apps: sbt
+    # m2-repo is the maven repository the build resolves the coursier modules
+    # from (see build.sbt)
+    - name: Get the coursier snapshot
+      uses: actions/download-artifact@v8
+      with:
+        name: m2-repo
+        path: m2-repo
     - run: scripts/ci.sh
       shell: bash
 
   publish:
-    needs: test
+    needs: [coursier-snapshot, test]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
@@ -61,6 +84,11 @@ jobs:
           jvm: 8
           apps: sbt
       - uses: olafurpg/setup-gpg@v3
+      - name: Get the coursier snapshot
+        uses: actions/download-artifact@v8
+        with:
+          name: m2-repo
+          path: m2-repo
       - name: Release
         run: sbt ci-release
         env:
