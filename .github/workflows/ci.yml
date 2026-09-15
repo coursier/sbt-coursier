@@ -83,7 +83,6 @@ jobs:
         with:
           jvm: 8
           apps: sbt
-      - uses: olafurpg/setup-gpg@v3
       - name: Get the coursier snapshot
         uses: actions/download-artifact@v8
         with:
