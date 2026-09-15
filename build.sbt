@@ -65,7 +65,7 @@ lazy val definitions = project
     libraryDependencies ++= Seq(
       coursierDep,
       "net.hamnaberg" %% "dataclass-annotation" % dataclassScalafixV % Provided,
-      "org.scala-sbt" %% "librarymanagement-ivy" % "1.12.3",
+      "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.4",
     ),
   )
 
@@ -91,7 +91,7 @@ lazy val `lm-coursier` = project
       // to DependencyResolutionInterface.update, which is an
       // IvySbt#Module (seems DependencyResolutionInterface.moduleDescriptor
       // is ignored).
-      "org.scala-sbt" %% "librarymanagement-ivy" % "1.12.3",
+      "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.4",
       "com.lihaoyi" %% "fansi" % "0.5.1" % Test,
       "org.scalatest" %% "scalatest" % "3.2.20" % Test
     ),
@@ -170,7 +170,7 @@ lazy val `lm-coursier-shaded` = project
       "org.scala-lang.modules" %% "scala-collection-compat" % "2.14.0",
       "org.scala-lang.modules" %% "scala-xml" % "2.5.0", // depending on that one so that it doesn't get shaded
       "org.slf4j" % "slf4j-api" % "1.7.36", // depending on that one so that it doesn't get shaded either
-      "org.scala-sbt" %% "librarymanagement-ivy" % "1.12.3",
+      "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.4",
       "org.scalatest" %% "scalatest" % "3.2.20" % Test
     )
   )
