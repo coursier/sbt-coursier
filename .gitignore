@@ -12,3 +12,6 @@ metals.sbt
 
 # coursier modules built from sources by scripts/publish-local-coursier.sh
 /m2-repo/
+
+# scala-cli, when running scripts/update-coursier-version.sc
+.scala-build/
