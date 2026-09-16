@@ -1,0 +1,50 @@
+name: Update coursier version
+
+on:
+  schedule:
+  # every Monday, at 5:17 AM UTC
+  - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+jobs:
+  update-coursier-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+    - uses: actions/checkout@v7
+    - uses: coursier/cache-action@v8.1
+    - uses: coursier/setup-action@v3.0
+      with:
+        jvm: 17
+        apps: scala-cli
+    # The script exits with a non-zero exit code if it can't get the latest
+    # coursier version, or can't update the files holding it, which fails this
+    # job - we'd rather be told about it than silently stop getting updates.
+    - name: Check for a newer coursier version
+      id: check
+      run: |
+        version="$(scala-cli run scripts/update-coursier-version.sc)"
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+      shell: bash
+    # The branch name is fixed, so that at most one such pull request is open at
+    # any time: if one already is, a newer version is pushed to its branch,
+    # rather than a second pull request being opened.
+    #
+    # Note that the pull request is created with GITHUB_TOKEN, and that pull
+    # requests created that way don't trigger the CI workflow. Closing and
+    # re-opening it runs the CI on it (a personal access token, passed via the
+    # token input below, would be needed to get that for free).
+    - name: Open or update the pull request
+      if: steps.check.outputs.version != ''
+      uses: peter-evans/create-pull-request@v8
+      with:
+        branch: update-coursier
+        delete-branch: true
+        commit-message: Update coursier to ${{ steps.check.outputs.version }}
+        title: Update coursier to ${{ steps.check.outputs.version }}
+        body: |
+          Updates coursier to [${{ steps.check.outputs.version }}](https://github.com/coursier/coursier/releases/tag/v${{ steps.check.outputs.version }}).
+
+          Opened by the [Update coursier version](https://github.com/${{ github.repository }}/actions/workflows/update-coursier-version.yml) workflow.
