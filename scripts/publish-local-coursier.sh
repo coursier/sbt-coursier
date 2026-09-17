@@ -16,7 +16,7 @@ set -euo pipefail
 # build.sbt) stays "SNAPSHOT".
 
 COURSIER_GIT_URL="${COURSIER_GIT_URL:-https://github.com/coursier/coursier.git}"
-COURSIER_TAG="${COURSIER_TAG:-v2.1.25-M26}"
+COURSIER_TAG="${COURSIER_TAG:-v2.1.25}"
 SCALA_VERSION="${SCALA_VERSION:-2.12.20}"
 
 # coursier's build strips the leading "v" of the tag of the current commit, and
