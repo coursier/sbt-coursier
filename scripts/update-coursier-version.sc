@@ -7,9 +7,18 @@
 // else requests warns it can't clean up its HTTP client threads, on JVMs < 21
 //> using javaOpt --add-opens=java.net.http/jdk.internal.net.http=ALL-UNNAMED
 
-// Checks on Maven Central whether a newer version of the main coursier module we
-// depend on (io.get-coursier::coursier) is available, and if so, bumps the
-// coursier version this build uses.
+// Checks on Maven Central whether a newer version of the main coursier module
+// (io.get-coursier:coursier_3) is available, and if so, bumps the coursier
+// version this build uses.
+//
+// coursier_3 is the module to look at, even though this build is an sbt 1.x
+// plugin depending on coursier_2.12: coursier_3 is published for every coursier
+// release, while coursier_2.12 can lag behind or not be published at all for a
+// given one. That's fine as long as coursierVersion0 in build.sbt is "SNAPSHOT",
+// as we then build coursier from sources at COURSIER_TAG, getting 2.12 artifacts
+// out of that build rather than from Maven Central. Override SCALA_BINARY_VERSION
+// to check another variant (say "2.12", were the build to depend on a released
+// coursier again).
 //
 // That version lives in two places:
 // - coursierVersion0 in build.sbt, the version the build depends on - it's only
@@ -37,7 +46,7 @@ def fail(message: String): Nothing =
   System.err.println(s"Error: $message")
   sys.exit(1)
 
-val scalaBinaryVersion = sys.env.getOrElse("SCALA_BINARY_VERSION", "2.12")
+val scalaBinaryVersion = sys.env.getOrElse("SCALA_BINARY_VERSION", "3")
 val metadataUrl = sys.env.getOrElse(
   "METADATA_URL",
   s"https://repo1.maven.org/maven2/io/get-coursier/coursier_$scalaBinaryVersion/maven-metadata.xml"
