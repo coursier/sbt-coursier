@@ -7,24 +7,27 @@
 // else requests warns it can't clean up its HTTP client threads, on JVMs < 21
 //> using javaOpt --add-opens=java.net.http/jdk.internal.net.http=ALL-UNNAMED
 
-// Checks on Maven Central whether a newer version of the main coursier module we
-// depend on (io.get-coursier::coursier) is available, and if so, bumps the
-// coursier version this build uses.
+// Checks on Maven Central whether a newer version of the main coursier module
+// (io.get-coursier:coursier_3) is available, and if so, bumps the coursier
+// version this build uses.
 //
-// That version lives in two places:
-// - coursierVersion0 in build.sbt, the version the build depends on - it's only
-//   updated when it holds an actual version, that is when it isn't "SNAPSHOT"
-//   (see the comments there and in scripts/publish-local-coursier.sh)
-// - COURSIER_TAG in scripts/publish-local-coursier.sh, the coursier tag the
-//   modules the build depends on are built from
-// Both are kept in sync, so that this works whether we depend on modules from
-// Maven Central, or on ones built from sources.
+// coursier_3 is the module to look at, even though this build is an sbt 1.x
+// plugin depending on coursier_2.12: coursier_3 is published for every coursier
+// release, while coursier_2.12 can lag behind or not be published at all for a
+// given one. That's fine as long as the build gets its coursier modules from a
+// build from sources, rather than from Maven Central. Override
+// SCALA_BINARY_VERSION to check another variant (say "2.12").
+//
+// The version we update is COURSIER_TAG in scripts/publish-local-coursier.sh,
+// the coursier tag the modules the build depends on are built from. That's the
+// only place we touch - coursierVersion0 in build.sbt is left alone, whatever it
+// holds (see the comments there and in scripts/publish-local-coursier.sh).
 //
 // Prints the version it updated to on stdout, and nothing at all if we're already
 // up-to-date. Anything that prevents us from getting the latest version (metadata
 // that can't be downloaded or parsed, no version in it, a version that doesn't
-// look like one…), and anything that prevents us from updating the files above
-// (their content changed…), is an error: we exit with a non-zero exit code, so
+// look like one…), and anything that prevents us from updating the file above
+// (its content changed…), is an error: we exit with a non-zero exit code, so
 // that the job running this fails rather than silently doing nothing.
 //
 // Run weekly from .github/workflows/update-coursier-version.yml.
@@ -37,24 +40,24 @@ def fail(message: String): Nothing =
   System.err.println(s"Error: $message")
   sys.exit(1)
 
-val scalaBinaryVersion = sys.env.getOrElse("SCALA_BINARY_VERSION", "2.12")
+val scalaBinaryVersion = sys.env.getOrElse("SCALA_BINARY_VERSION", "3")
 val metadataUrl = sys.env.getOrElse(
   "METADATA_URL",
   s"https://repo1.maven.org/maven2/io/get-coursier/coursier_$scalaBinaryVersion/maven-metadata.xml"
 )
 
-// the directory this is run from, or the closest parent of it, having build.sbt in it
+// the directory this is run from, or the closest parent of it, having build.sbt in
+// it - build.sbt is only used as a marker of the repository root here, we don't
+// read nor write it
 def repoRoot(dir: os.Path): os.Path =
   if os.exists(dir / "build.sbt") then dir
   else if dir == os.root then fail("no build.sbt found in the current directory or its parents")
   else repoRoot(dir / os.up)
 
 val root          = repoRoot(os.pwd)
-val buildSbt      = root / "build.sbt"
 val publishScript = root / "scripts" / "publish-local-coursier.sh"
 
-val versionLine = """^def coursierVersion0 = "(.*)"$""".r
-val tagLine     = """^COURSIER_TAG="\$\{COURSIER_TAG:-(.*)\}"$""".r
+val tagLine = """^COURSIER_TAG="\$\{COURSIER_TAG:-(.*)\}"$""".r
 
 def fetch(url: String): String =
   // local files are accepted too, handy to try this script out
@@ -100,22 +103,15 @@ def replaceLine(path: os.Path, regex: Regex, newLine: String): Unit =
   val updated = lines.map { case line @ regex(_) => newLine; case line => line }
   os.write.over(path, updated.mkString("\n"))
 
-val latest         = latestVersion()
-val currentVersion = currentValue(buildSbt, versionLine)
-val currentTag     = currentValue(publishScript, tagLine)
-// when the build depends on a snapshot, the version it actually gets is the one
-// built from the coursier tag pinned in the publishing script
-val current = if currentVersion == "SNAPSHOT" then currentTag.stripPrefix("v") else currentVersion
+val latest  = latestVersion()
+val current = currentValue(publishScript, tagLine).stripPrefix("v")
 
 if current == latest then System.err.println(s"Already using the latest coursier version ($current)")
 else
   System.err.println(s"Updating coursier from $current to $latest")
-  if currentVersion != "SNAPSHOT" then
-    replaceLine(buildSbt, versionLine, s"""def coursierVersion0 = "$latest"""")
   replaceLine(publishScript, tagLine, "COURSIER_TAG=\"${COURSIER_TAG:-v" + latest + "}\"")
-  // ensure the files we just rewrote are still in the shape we expect, so that we
+  // ensure the file we just rewrote is still in the shape we expect, so that we
   // never open a pull request with no or bogus changes in it
-  if currentValue(publishScript, tagLine) != s"v$latest" ||
-    (currentVersion != "SNAPSHOT" && currentValue(buildSbt, versionLine) != latest)
-  then fail(s"failed to update the coursier version in $buildSbt / $publishScript")
+  if currentValue(publishScript, tagLine) != s"v$latest" then
+    fail(s"failed to update the coursier version in $publishScript")
   println(latest)
