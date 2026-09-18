@@ -17,26 +17,11 @@ set -euo pipefail
 
 COURSIER_GIT_URL="${COURSIER_GIT_URL:-https://github.com/coursier/coursier.git}"
 COURSIER_TAG="${COURSIER_TAG:-v2.1.25}"
-SCALA_VERSION="${SCALA_VERSION:-2.12.20}"
 
 # coursier's build strips the leading "v" of the tag of the current commit, and
 # uses that as version
 SNAPSHOT_TAG="vSNAPSHOT"
 COURSIER_VERSION="${SNAPSHOT_TAG#v}"
-
-# coursier modules needed to build sbt-coursier: the ones the sbt-coursier build
-# depends on (coursier, coursier-sbt-maven-repository), and their dependencies
-# (mill only publishes the modules it's asked to publish).
-MODULES=(
-  "util.jvm[$SCALA_VERSION]"
-  "core.jvm[$SCALA_VERSION]"
-  "cache-util"
-  "paths"
-  "cache.jvm[$SCALA_VERSION]"
-  "proxy-setup"
-  "coursier.jvm[$SCALA_VERSION]"
-  "sbt-maven-repository.jvm[$SCALA_VERSION]"
-)
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # under target/, so that it's ignored by git
@@ -81,6 +66,42 @@ case "$(uname -s)" in
 esac
 
 cd "$WORK_DIR"
+
+# sbt 1.x plugins are Scala 2.12 ones, so we need the Scala 2.12 flavour of the
+# cross-built coursier modules. Which Scala 2.12 version exactly is coursier's
+# build business, and it bumps it from time to time, so we ask it rather than
+# hard-code it (and get a clear error if we can't, rather than a puzzling
+# "Cannot resolve util.jvm.2_12_20.publishM2Local" later on). mill prints the
+# cross versions of a module as lines like "util.jvm.2_12_21", underscores and
+# all, hence the tr below. SCALA_VERSION can be set to override all this.
+if [ -z "${SCALA_VERSION:-}" ]; then
+  SCALA_212_VERSIONS="$(
+    "$MILL" resolve 'util.jvm[_]' \
+      | sed -n 's/^util\.jvm\.\(2_12_.*\)$/\1/p' \
+      | tr '_' '.'
+  )"
+  if [ "$(printf '%s\n' "$SCALA_212_VERSIONS" | grep -cE '^2\.12\.[0-9][0-9A-Za-z.-]*$')" != "1" ]; then
+    echo "Error: expected exactly one Scala 2.12 version among the cross versions" 1>&2
+    echo "of the coursier util module, got:" 1>&2
+    echo "$SCALA_212_VERSIONS" 1>&2
+    echo "Set SCALA_VERSION to pick one." 1>&2
+    exit 1
+  fi
+  SCALA_VERSION="$SCALA_212_VERSIONS"
+fi
+echo "Using Scala $SCALA_VERSION"
+
+# coursier modules needed to build sbt-coursier: the one the sbt-coursier build
+# depends on (coursier), and its dependencies (mill only publishes the modules
+# it's asked to publish).
+MODULES=(
+  "util.jvm[$SCALA_VERSION]"
+  "core.jvm[$SCALA_VERSION]"
+  "paths"
+  "cache.jvm[$SCALA_VERSION]"
+  "coursier.jvm[$SCALA_VERSION]"
+)
+
 for module in "${MODULES[@]}"; do
   "$MILL" "$module.publishM2Local" --m2RepoPath "$M2_REPO"
 done
