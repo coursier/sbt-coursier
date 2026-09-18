@@ -14,8 +14,8 @@ jobs:
       pull-requests: write
     steps:
     - uses: actions/checkout@v7
-    - uses: coursier/cache-action@v8.1
-    - uses: coursier/setup-action@v3.0
+    - uses: coursier/cache-action@v8
+    - uses: coursier/setup-action@v3
       with:
         jvm: 17
         apps: scala-cli

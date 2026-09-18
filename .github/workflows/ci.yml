@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
-    - uses: coursier/cache-action@v8.1
+    - uses: coursier/cache-action@v8
     - name: Build and publish coursier locally
       run: scripts/publish-local-coursier.sh
       shell: bash
@@ -30,7 +30,7 @@ jobs:
       with:
         fetch-depth: 0
         submodules: false
-    - uses: coursier/setup-action@v3.0
+    - uses: coursier/setup-action@v3
       with:
         jvm: 8
         apps: sbt
@@ -54,8 +54,8 @@ jobs:
       with:
         fetch-depth: 0
         submodules: true
-    - uses: coursier/cache-action@v8.1
-    - uses: coursier/setup-action@v3.0
+    - uses: coursier/cache-action@v8
+    - uses: coursier/setup-action@v3
       with:
         jvm: 8
         apps: sbt
@@ -78,8 +78,8 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
-      - uses: coursier/cache-action@v8.1
-      - uses: coursier/setup-action@v3.0
+      - uses: coursier/cache-action@v8
+      - uses: coursier/setup-action@v3
         with:
           jvm: 8
           apps: sbt
