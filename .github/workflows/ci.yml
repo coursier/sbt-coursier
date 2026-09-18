@@ -22,7 +22,7 @@ jobs:
     # rebuilds coursier on each of its runs, until it's merged.
     - name: Cache the coursier snapshot
       id: cache
-      uses: actions/cache@v6.1
+      uses: actions/cache@v6
       with:
         path: m2-repo
         key: m2-repo-${{ runner.os }}-${{ hashFiles('scripts/publish-local-coursier.sh') }}
