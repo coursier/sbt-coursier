@@ -13,8 +13,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
+    # The coursier snapshot only changes when publish-local-coursier.sh changes
+    # (most often to bump the coursier tag it builds), so we cache m2-repo,
+    # keyed on that script, rather than rebuild coursier on every run.
+    #
+    # Note that only caches written by runs on the default branch are visible to
+    # all the other branches - a pull request that bumps the coursier tag
+    # rebuilds coursier on each of its runs, until it's merged.
+    - name: Cache the coursier snapshot
+      id: cache
+      uses: actions/cache@v6
+      with:
+        path: m2-repo
+        key: m2-repo-${{ runner.os }}-${{ hashFiles('scripts/publish-local-coursier.sh') }}
     - uses: coursier/cache-action@v8
+      if: steps.cache.outputs.cache-hit != 'true'
     - name: Build and publish coursier locally
+      if: steps.cache.outputs.cache-hit != 'true'
       run: scripts/publish-local-coursier.sh
       shell: bash
     - uses: actions/upload-artifact@v7
