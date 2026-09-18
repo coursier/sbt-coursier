@@ -83,7 +83,6 @@ lazy val `lm-coursier` = project
     publish / skip := true,
     libraryDependencies ++= Seq(
       coursierDep,
-      "io.get-coursier" %% "coursier-sbt-maven-repository" % coursierVersion0,
       "io.get-coursier.jniutils" % "windows-jni-utils-lmcoursier" % jniUtilsVersion,
       "net.hamnaberg" %% "dataclass-annotation" % dataclassScalafixV % Provided,
       // We depend on librarymanagement-ivy rather than just
@@ -123,7 +122,6 @@ lazy val `lm-coursier-shaded` = project
     Compile / packageDoc / mappings := Seq.empty,
     shadedModules ++= Set(
       "io.get-coursier" %% "coursier",
-      "io.get-coursier" %% "coursier-sbt-maven-repository",
       "io.get-coursier.jniutils" % "windows-jni-utils-lmcoursier"
     ),
     validNamespaces += "lmcoursier",
@@ -164,7 +162,6 @@ lazy val `lm-coursier-shaded` = project
     },
     libraryDependencies ++= Seq(
       coursierDep,
-      "io.get-coursier" %% "coursier-sbt-maven-repository" % coursierVersion0,
       "io.get-coursier.jniutils" % "windows-jni-utils-lmcoursier" % jniUtilsVersion,
       "net.hamnaberg" %% "dataclass-annotation" % dataclassScalafixV % Provided,
       "org.scala-lang.modules" %% "scala-collection-compat" % "2.14.0",

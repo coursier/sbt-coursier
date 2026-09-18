@@ -66,6 +66,10 @@ final case class ResolutionParams(
       .withPool(null)
       .withLogger(null)
       .withSync(null)
+      // a fresh class loader is created for each CoursierDependencyResolution, and
+      // class loaders are only equal to themselves, so keeping those here would make
+      // the key differ from run to run, and the cache never get any hit
+      .withClassLoaders(Nil)
     SbtCoursierCache.ResolutionKey(
       dependencies,
       internalRepositories,

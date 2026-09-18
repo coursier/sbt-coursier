@@ -221,6 +221,13 @@ class CoursierDependencyResolution(
     val typelevel = so == Typelevel.typelevelOrg
 
     val cache0 = coursier.cache.FileCache()
+      // the cache downloads the artifacts itself, so it needs the protocol handlers
+      // too, else artifacts behind a custom protocol can't be fetched (the
+      // repositories above only use them to check they can parse their root URL).
+      // Since coursier 2.1.25, passing them to the repositories isn't enough:
+      // handlers found via extra class loaders aren't put in coursier's global
+      // protocol handler cache any more, which the cache used to find them in.
+      .withClassLoaders(protocolHandlerClassLoader.toSeq)
       .withLocation(cache)
       .withCachePolicies(cachePolicies)
       .withTtl(ttl)
