@@ -11,6 +11,9 @@ object Settings {
 
   lazy val shared = Seq(
     scalaVersion := scala212,
+    // name of the deployment on https://central.sonatype.com/publishing/deployments
+    // (sbt defaults to "organization:name:version:random-uuid")
+    sonaDeploymentName := s"sbt-coursier-${version.value}",
     scalacOptions ++= Seq(
       "-feature",
       "-deprecation",

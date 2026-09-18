@@ -5,6 +5,14 @@ def dataclassScalafixV = "0.3.0"
 inThisBuild(List(
   organization := "io.get-coursier",
   homepage := Some(url("https://github.com/coursier/sbt-coursier")),
+  // The version is deduced from the "v*" git tags, see project/Version.scala. This replaces
+  // the scheme of sbt-dynver (which sbt-ci-release relies on), whose snapshot versions carry
+  // a distance and a commit hash.
+  version := Version.compute(dynverGitDescribeOutput.value),
+  // isSnapshot drives where sbt-ci-release publishes (the Central snapshot repository, or the
+  // local staging directory that gets bundled and uploaded), so keep it in sync with the
+  // version above rather than with sbt-dynver's own notion of a snapshot.
+  isSnapshot := version.value.endsWith("-SNAPSHOT"),
   licenses := Seq("Apache 2.0" -> url("http://opensource.org/licenses/Apache-2.0")),
   developers := List(
     Developer(
@@ -204,5 +212,24 @@ lazy val `sbt-coursier-root` = project
     shared,
     (publish / skip) := true
   )
+
+// Same as the default sonaBundle of sbt, minus the checksums of the PGP signatures.
+//
+// Sonatype Central wants checksums for the published artifacts, not for their ".asc"
+// signatures: Sonatype's own documented bundle layout has none of the latter
+// (https://central.sonatype.org/publish/publish-portal-upload/), and neither do artifacts
+// published with Maven or Gradle. sbt checksums every file it publishes, signatures included,
+// which uploads files that nothing ever reads.
+Global / sonaBundle := {
+  val staging = stagingDirectory.value
+  val bundle = (ThisBuild / baseDirectory).value / "target" / "sona-bundle" / "bundle.zip"
+  val content = sbt.io.Path.contentOf(staging).filterNot {
+    case (_, path) => path.endsWith(".asc.md5") || path.endsWith(".asc.sha1")
+  }
+  IO.delete(bundle)
+  // time = Some(0L), like sbt does, so that the bundle is reproducible
+  IO.zip(content, bundle, Some(0L))
+  bundle
+}
 
 Global / onChangedBuildSource := ReloadOnSourceChanges

@@ -89,8 +89,21 @@ jobs:
           name: m2-repo
           path: m2-repo
       - name: Release
-        run: sbt ci-release
+        run: |
+          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
+            # A tag can point at HEAD here, when it is pushed right after the commit it tags.
+            # Get it out of the way, so that a snapshot version is computed and published,
+            # rather than the release version (which the tag build publishes).
+            for tag in $(git tag --points-at HEAD); do
+              git tag -d "$tag"
+            done
+          fi
+          sbt ci-release
         env:
+          # sonaUpload rather than the sonaRelease sbt-ci-release runs by default: the bundle is
+          # uploaded to and validated by Sonatype Central, but has to be published manually from
+          # https://central.sonatype.com/publishing/deployments
+          CI_SONATYPE_RELEASE: sonaUpload
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
