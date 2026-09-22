@@ -61,6 +61,7 @@ object TemporaryInMemoryRepository {
             .withHostnameVerifierOpt(cacheOpt.flatMap(_.hostnameVerifierOpt))
             .withMethod("HEAD")
             .withMaxRedirectionsOpt(cacheOpt.flatMap(_.maxRedirections))
+            .withUserAgentOpt(cacheOpt.flatMap(_.userAgent))
             .connection()
           // Even though the finally clause handles this too, this has to be run here, so that we return Some(true)
           // iff this doesn't throw.

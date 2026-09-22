@@ -234,6 +234,7 @@ class CoursierDependencyResolution(
       .withChecksums(checksums)
       .withCredentials(conf.credentials.map(ToCoursier.credentials))
       .withFollowHttpToHttpsRedirections(conf.followHttpToHttpsRedirections.getOrElse(true))
+      .withUserAgent(conf.userAgent)
 
     val excludeDependencies = conf
       .excludeDependencies
@@ -386,4 +387,17 @@ object CoursierDependencyResolution {
 
   def defaultCacheLocation: File =
     CacheDefaults.location
+
+  /**
+   * The key is built at runtime, as lm-coursier-shaded's relocation would rewrite
+   * a "coursier."-prefixed string literal to "lmcoursier.internal.shaded.coursier...".
+   */
+  private val userAgentPropertyKey: String = Seq("coursier", "http", "agent").mkString(".")
+
+  /**
+   * Coursier's own User-Agent, for tools embedding lm-coursier to prepend to theirs.
+   * Overridden by the coursier.http.agent Java property.
+   */
+  lazy val coursierUserAgent: String =
+    sys.props.getOrElse(userAgentPropertyKey, "Coursier/2.1 (+https://github.com/coursier)")
 }
