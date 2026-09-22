@@ -79,7 +79,7 @@ lazy val definitions = project
 
 // FIXME Ideally, we should depend on the same version of io.get-coursier.jniutils:windows-jni-utils that
 // io.get-coursier::coursier depends on.
-val jniUtilsVersion = "0.3.4"
+val jniUtilsVersion = "0.4.0"
 
 // Not published, only lm-coursier-shaded is. This project holds the sources
 // (which lm-coursier-shaded picks up via Compile / sources) and the tests.
