@@ -55,13 +55,20 @@ class UserAgentSpec extends AnyPropSpec {
     assert(agents.forall(_ == agent))
   }
 
-  property("coursier default user agent is sent when none is set") {
+  property("default user agent is sent when none is set") {
     val agents = requestUserAgents(CoursierConfiguration())
     assert(agents.nonEmpty)
-    assert(agents.forall(_.startsWith("Coursier/2.1 (+https://github.com/coursier")))
+    assert(agents.forall(_ == CoursierDependencyResolution.defaultUserAgent))
   }
 
   property("coursierUserAgent names coursier") {
-    assert(CoursierDependencyResolution.coursierUserAgent == "Coursier/2.1 (+https://github.com/coursier)")
+    assert(CoursierDependencyResolution.coursierUserAgent.startsWith("Coursier/2.1 (+https://github.com/coursier"))
+  }
+
+  property("defaultUserAgent is coursier's followed by sbt's") {
+    val expected = s"${CoursierDependencyResolution.coursierUserAgent} sbt/1 (+https://www.scala-sbt.org/)"
+    assert(CoursierDependencyResolution.defaultUserAgent == expected)
+    // coursier may add comment tokens of its own, such as "ci" on CI, hence the prefix check
+    assert(CoursierDependencyResolution.defaultUserAgent.startsWith("Coursier/2.1 (+https://github.com/coursier"))
   }
 }
