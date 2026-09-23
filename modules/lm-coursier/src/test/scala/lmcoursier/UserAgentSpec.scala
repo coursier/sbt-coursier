@@ -65,10 +65,10 @@ class UserAgentSpec extends AnyPropSpec {
     assert(CoursierDependencyResolution.coursierUserAgent.startsWith("Coursier/2.1 (+https://github.com/coursier"))
   }
 
-  property("defaultUserAgent is coursier's with an sbt-1 comment") {
-    // coursier adds comments of its own, such as "ci" on CI, so only the last one is pinned here
-    val expected = CoursierDependencyResolution.coursierUserAgent.stripSuffix(")") + "; sbt-1)"
+  property("defaultUserAgent is coursier's followed by sbt's") {
+    val expected = s"${CoursierDependencyResolution.coursierUserAgent} sbt/1 (+https://www.scala-sbt.org/)"
     assert(CoursierDependencyResolution.defaultUserAgent == expected)
-    assert(CoursierDependencyResolution.defaultUserAgent.startsWith("Coursier/2.1 (+https://github.com/coursier; "))
+    // coursier may add comment tokens of its own, such as "ci" on CI, hence the prefix check
+    assert(CoursierDependencyResolution.defaultUserAgent.startsWith("Coursier/2.1 (+https://github.com/coursier"))
   }
 }

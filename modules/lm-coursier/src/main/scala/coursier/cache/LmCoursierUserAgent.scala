@@ -1,17 +1,14 @@
 package coursier.cache
 
 /**
- * Reaches coursier's own User-Agent helpers, which are private to the coursier package.
+ * Reaches coursier's default User-Agent, which is private to the coursier package.
  *
- * Internal to lm-coursier: this lives in coursier's package only to get at those helpers.
+ * Internal to lm-coursier: this lives in coursier's package only to get at that value.
  * Use lmcoursier.CoursierDependencyResolution.coursierUserAgent and defaultUserAgent instead.
  */
 object LmCoursierUserAgent {
 
-  /**
-   * Coursier's User-Agent, with extra comment tokens after its contact one.
-   * The coursier.http.agent Java property overrides it outright, comments included.
-   */
-  def coursierUserAgent(comments: String*): String =
-    CacheUrl.coursierUserAgent(comments: _*)
+  /** Coursier's own User-Agent, overridden by the coursier.http.agent Java property. */
+  def coursierUserAgent: String =
+    CacheUrl.defaultUserAgent
 }

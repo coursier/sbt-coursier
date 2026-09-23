@@ -393,13 +393,12 @@ object CoursierDependencyResolution {
    * Overridden by the coursier.http.agent Java property.
    */
   def coursierUserAgent: String =
-    coursier.cache.LmCoursierUserAgent.coursierUserAgent()
+    coursier.cache.LmCoursierUserAgent.coursierUserAgent
 
   /**
-   * The User-Agent sent when none is set in CoursierConfiguration: coursier's own, with
-   * an "sbt-1" comment token telling repositories the requests come from lm-coursier,
-   * that is from sbt 1.x. Overridden by the coursier.http.agent Java property.
+   * The User-Agent sent when none is set in CoursierConfiguration: coursier's own,
+   * followed by an sbt product token, as lm-coursier is the sbt 1.x dependency resolver.
    */
   def defaultUserAgent: String =
-    coursier.cache.LmCoursierUserAgent.coursierUserAgent("sbt-1")
+    s"$coursierUserAgent sbt/1 (+https://www.scala-sbt.org/)"
 }
