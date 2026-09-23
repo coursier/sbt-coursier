@@ -234,7 +234,7 @@ class CoursierDependencyResolution(
       .withChecksums(checksums)
       .withCredentials(conf.credentials.map(ToCoursier.credentials))
       .withFollowHttpToHttpsRedirections(conf.followHttpToHttpsRedirections.getOrElse(true))
-      .withUserAgent(conf.userAgent)
+      .withUserAgent(conf.userAgent.getOrElse(CoursierDependencyResolution.defaultUserAgent))
 
     val excludeDependencies = conf
       .excludeDependencies
@@ -389,15 +389,17 @@ object CoursierDependencyResolution {
     CacheDefaults.location
 
   /**
-   * The key is built at runtime, as lm-coursier-shaded's relocation would rewrite
-   * a "coursier."-prefixed string literal to "lmcoursier.internal.shaded.coursier...".
-   */
-  private val userAgentPropertyKey: String = Seq("coursier", "http", "agent").mkString(".")
-
-  /**
    * Coursier's own User-Agent, for tools embedding lm-coursier to prepend to theirs.
    * Overridden by the coursier.http.agent Java property.
    */
-  lazy val coursierUserAgent: String =
-    sys.props.getOrElse(userAgentPropertyKey, "Coursier/2.1 (+https://github.com/coursier)")
+  def coursierUserAgent: String =
+    coursier.cache.LmCoursierUserAgent.coursierUserAgent()
+
+  /**
+   * The User-Agent sent when none is set in CoursierConfiguration: coursier's own, with
+   * an "sbt-1" comment token telling repositories the requests come from lm-coursier,
+   * that is from sbt 1.x. Overridden by the coursier.http.agent Java property.
+   */
+  def defaultUserAgent: String =
+    coursier.cache.LmCoursierUserAgent.coursierUserAgent("sbt-1")
 }
