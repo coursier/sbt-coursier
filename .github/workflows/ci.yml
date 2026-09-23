@@ -38,6 +38,22 @@ jobs:
         path: m2-repo
         if-no-files-found: error
 
+  jni-utils-version:
+    needs: coursier-snapshot
+    name: jni-utils version
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - uses: coursier/cache-action@v8
+    - uses: coursier/setup-action@v3
+    - name: Get the coursier snapshot
+      uses: actions/download-artifact@v8
+      with:
+        name: m2-repo
+        path: m2-repo
+    - run: scripts/check-jni-utils-version.sh
+      shell: bash
+
   formatting:
     runs-on: ubuntu-latest
     steps:
@@ -85,7 +101,7 @@ jobs:
       shell: bash
 
   publish:
-    needs: [coursier-snapshot, test]
+    needs: [coursier-snapshot, jni-utils-version, test]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
