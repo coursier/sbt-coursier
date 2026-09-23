@@ -67,4 +67,6 @@ import java.net.URLClassLoader
   sameVersions: Seq[Set[InclExclRule]] = Nil,
   @since
   enableDependencyOverrides: Option[Boolean] = None,
+  @since
+  userAgent: Option[String] = None,
 )

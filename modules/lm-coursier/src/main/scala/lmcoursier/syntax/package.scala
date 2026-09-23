@@ -79,6 +79,7 @@ package object syntax {
         retry = None,
         sameVersions = Nil,
         enableDependencyOverrides = None,
+        userAgent = None,
       )
   }
 
@@ -117,6 +118,8 @@ package object syntax {
       value.withRetry(Some((retry._1, retry._2)))
     def withEnableDependencyOverrides(enable: Boolean): CoursierConfiguration =
       value.withEnableDependencyOverrides(Some(enable))
+    def withUserAgent(userAgent: String): CoursierConfiguration =
+      value.withUserAgent(Option(userAgent))
   }
 
   implicit class PublicationOp(value: Publication) {
