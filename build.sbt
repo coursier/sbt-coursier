@@ -77,9 +77,13 @@ lazy val definitions = project
     ),
   )
 
-// FIXME Ideally, we should depend on the same version of io.get-coursier.jniutils:windows-jni-utils that
-// io.get-coursier::coursier depends on.
-val jniUtilsVersion = "0.3.4"
+// windows-jni-utils-lmcoursier implements the coursier.jniutils.NativeApi of
+// io.get-coursier.jniutils:windows-jni-utils (pulled by coursier via coursier-paths) for
+// lm-coursier-shaded, where the latter ends up shaded: it comes with a native library built for the
+// shaded class names, which JNI ties native functions to. Both need to be the same version, so that
+// the native API implemented by the former is the one coursier calls.
+// scripts/check-jni-utils-version.sh checks that, and is run on CI.
+val jniUtilsVersion = "0.4.0"
 
 // Not published, only lm-coursier-shaded is. This project holds the sources
 // (which lm-coursier-shaded picks up via Compile / sources) and the tests.
