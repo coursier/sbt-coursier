@@ -104,6 +104,16 @@ jobs:
     needs: [coursier-snapshot, jni-utils-version, test]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    # Never publish to Sonatype Central from two jobs at a time (snapshots of successive pushes,
+    # or a snapshot and a release). A job waits for the running one rather than cancelling it.
+    # GitHub keeps only one waiting job per group though, and cancels an older waiting one.
+    concurrency:
+      group: sonatype-central-publish-${{ github.repository }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      # for the GitHub Packages publishing below
+      packages: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -139,3 +149,16 @@ jobs:
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+      # Same artifacts, snapshots included, to the GitHub Packages Maven repository of this repo
+      # (versions computed the same way, as the tags deleted above are still out of the way).
+      # Best effort: Sonatype Central is the source of truth, so a failure here shouldn't fail the
+      # job. ThisBuild / publishTo takes precedence over the repositories sbt-ci-release picks.
+      - name: Publish to GitHub Packages
+        continue-on-error: true
+        run: |
+          sbt \
+            'set ThisBuild / publishTo := Some("GitHub Packages" at s"https://maven.pkg.github.com/${sys.env("GITHUB_REPOSITORY")}")' \
+            'set ThisBuild / credentials += Credentials("GitHub Package Registry", "maven.pkg.github.com", sys.env("GITHUB_ACTOR"), sys.env("GITHUB_TOKEN"))' \
+            publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
