@@ -26,7 +26,7 @@ jobs:
       with:
         path: m2-repo
         key: m2-repo-${{ runner.os }}-${{ hashFiles('scripts/publish-local-coursier.sh') }}
-    - uses: coursier/cache-action@v8
+    - uses: coursier/cache-action@v9
       if: steps.cache.outputs.cache-hit != 'true'
     - name: Build and publish coursier locally
       if: steps.cache.outputs.cache-hit != 'true'
@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
-    - uses: coursier/cache-action@v8
+    - uses: coursier/cache-action@v9
     - uses: coursier/setup-action@v3
     - name: Get the coursier snapshot
       uses: actions/download-artifact@v8
@@ -85,7 +85,7 @@ jobs:
       with:
         fetch-depth: 0
         submodules: true
-    - uses: coursier/cache-action@v8
+    - uses: coursier/cache-action@v9
     - uses: coursier/setup-action@v3
       with:
         jvm: 8
@@ -119,7 +119,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
-      - uses: coursier/cache-action@v8
+      - uses: coursier/cache-action@v9
       - uses: coursier/setup-action@v3
         with:
           jvm: 8
