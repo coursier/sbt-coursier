@@ -10,8 +10,8 @@ import coursier.util.Artifact
 import coursier.internal.Typelevel
 import lmcoursier.definitions.ToCoursier
 import lmcoursier.internal.{
-  ArtifactsParams, ArtifactsRun, CoursierModuleDescriptor, InterProjectRepository, ResolutionParams, ResolutionRun,
-  Resolvers, SbtBootJars, UpdateParams, UpdateRun
+  ArtifactsParams, ArtifactsRun, CoursierModuleDescriptor, InterProjectRepository, JniUtilsSetup, ResolutionParams,
+  ResolutionRun, Resolvers, SbtBootJars, UpdateParams, UpdateRun
 }
 import lmcoursier.syntax._
 import sbt.internal.librarymanagement.IvySbt
@@ -34,6 +34,8 @@ class CoursierDependencyResolution(
       protocolHandlerConfiguration = None,
       bootstrappingProtocolHandler = true
     )
+
+  JniUtilsSetup.ensureSetup()
 
   private var protocolHandlerClassLoader: Option[ClassLoader] = None
   private val protocolHandlerClassLoaderLock = new Object
@@ -370,6 +372,9 @@ class CoursierDependencyResolution(
 }
 
 object CoursierDependencyResolution {
+
+  JniUtilsSetup.ensureSetup()
+
   def apply(configuration: CoursierConfiguration): DependencyResolution =
     DependencyResolution(new CoursierDependencyResolution(configuration))
 

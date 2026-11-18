@@ -3,6 +3,7 @@ package lmcoursier
 import coursier.cache.CacheDefaults
 import lmcoursier.credentials._
 import lmcoursier.definitions._
+import lmcoursier.internal.JniUtilsSetup
 import sbt.librarymanagement.{
   Resolver, UpdateConfiguration, ModuleID, CrossVersion, ModuleInfo, ModuleDescriptorConfiguration
 }
@@ -14,6 +15,8 @@ import java.net.URL
 import java.net.URLClassLoader
 
 package object syntax {
+  JniUtilsSetup.ensureSetup()
+
   implicit class CoursierConfigurationModule(value: CoursierConfiguration.type) {
     @deprecated("Legacy cache location support was dropped, this method does nothing.", "2.0.0-RC6-10")
     def checkLegacyCache(): Unit = ()

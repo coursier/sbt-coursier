@@ -77,13 +77,21 @@ lazy val definitions = project
     ),
   )
 
-// windows-jni-utils-lmcoursier implements the coursier.jniutils.NativeApi of
-// io.get-coursier.jniutils:windows-jni-utils (pulled by coursier via coursier-paths) for
-// lm-coursier-shaded, where the latter ends up shaded: it comes with a native library built for the
-// shaded class names, which JNI ties native functions to. Both need to be the same version, so that
-// the native API implemented by the former is the one coursier calls.
-// scripts/check-jni-utils-version.sh checks that, and is run on CI.
-val jniUtilsVersion = "0.4.0"
+// lmcoursier.internal.jniutils.LmNativeApi, in the lm-coursier sources, implements the
+// coursier.jniutils.NativeApi of io.get-coursier.jniutils:windows-jni-utils (pulled by coursier via
+// coursier-paths) for lm-coursier-shaded, where the latter ends up shaded. JNI ties native
+// functions to class names, so that the native methods of the shaded DefaultNativeApi can't be
+// bound, whereas the ones of LmNativeApi (whose package isn't shaded) are implemented by the DLL of
+// windows-jni-utils. lmcoursier.internal.JniUtilsSetup passes LmNativeApi to NativeApi.set.
+//
+// LmNativeApi.java (and its GraalVM native image configuration) are copied from
+// windows-jni-utils-lmcoursier/ in the coursier/jni-utils repository, at the tag of the version
+// below, as jni-utils doesn't publish that module any more since 0.5.0 (only the first line of
+// LmNativeApi.java differs, saying where it comes from). That version needs to be
+// the windows-jni-utils version pulled by coursier, so that the native functions LmNativeApi
+// calls are the ones of the DLL coursier comes with.
+// scripts/check-jni-utils-version.sh checks both of these, and is run on CI.
+val jniUtilsVersion = "0.5.0"
 
 // Not published, only lm-coursier-shaded is. This project holds the sources
 // (which lm-coursier-shaded picks up via Compile / sources) and the tests.
@@ -95,7 +103,6 @@ lazy val `lm-coursier` = project
     publish / skip := true,
     libraryDependencies ++= Seq(
       coursierDep,
-      "io.get-coursier.jniutils" % "windows-jni-utils-lmcoursier" % jniUtilsVersion,
       "net.hamnaberg" %% "dataclass-annotation" % dataclassScalafixV % Provided,
       // We depend on librarymanagement-ivy rather than just
       // librarymanagement-core to handle the ModuleDescriptor passed
@@ -126,16 +133,14 @@ lazy val `lm-coursier-shaded` = project
     Mima.lmCoursierFilters,
     Mima.lmCoursierShadedFilters,
     Compile / sources := (`lm-coursier` / Compile / sources).value,
+    Compile / unmanagedResourceDirectories ++= (`lm-coursier` / Compile / unmanagedResourceDirectories).value,
     // Publishing a mostly empty scaladoc JAR, not to push too much data
     // upon each release, to stay under the Maven Central publishing limits.
     // Empty mappings rather than only empty doc sources, so that a stale api
     // directory doesn't get packaged.
     Compile / doc / sources := Seq.empty,
     Compile / packageDoc / mappings := Seq.empty,
-    shadedModules ++= Set(
-      "io.get-coursier" %% "coursier",
-      "io.get-coursier.jniutils" % "windows-jni-utils-lmcoursier"
-    ),
+    shadedModules += "io.get-coursier" %% "coursier",
     validNamespaces += "lmcoursier",
     validEntries ++= Set(
       // FIXME Ideally, we should just strip those from the resulting JAR…
@@ -154,6 +159,7 @@ lazy val `lm-coursier-shaded` = project
         "macrocompat",
         "io.github.alexarchambault.isterminal",
         "io.github.alexarchambault.windowsansi",
+        "io.github.alexarchambault.nativeterm",
         "concurrentrefhashmap",
         // pulled by the plexus-archiver stuff that coursier-cache
         // depends on for now… can hopefully be removed in the future
@@ -174,11 +180,15 @@ lazy val `lm-coursier-shaded` = project
     },
     libraryDependencies ++= Seq(
       coursierDep,
-      "io.get-coursier.jniutils" % "windows-jni-utils-lmcoursier" % jniUtilsVersion,
       "net.hamnaberg" %% "dataclass-annotation" % dataclassScalafixV % Provided,
       "org.scala-lang.modules" %% "scala-collection-compat" % "2.14.0",
       "org.scala-lang.modules" %% "scala-xml" % "2.5.0", // depending on that one so that it doesn't get shaded
       "org.slf4j" % "slf4j-api" % "1.7.36", // depending on that one so that it doesn't get shaded either
+      // pulled by coursier-cache via native-terminal. Depending on it so that it doesn't get shaded
+      // either: JNI ties its native functions to the names of its classes (org.jline.nativ.*), and
+      // it loads its native libraries from resources under org/jline/nativ/. sbt itself also
+      // depends on it (via jline-terminal-jni).
+      "org.jline" % "jline-native" % "3.30.17",
       "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.4",
       "org.scalatest" %% "scalatest" % "3.2.20" % Test
     )
