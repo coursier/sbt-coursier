@@ -188,7 +188,7 @@ lazy val `lm-coursier-shaded` = project
       // either: JNI ties its native functions to the names of its classes (org.jline.nativ.*), and
       // it loads its native libraries from resources under org/jline/nativ/. sbt itself also
       // depends on it (via jline-terminal-jni).
-      "org.jline" % "jline-native" % "3.30.17",
+      "org.jline" % "jline-native" % "4.7.0",
       "org.scala-sbt" %% "librarymanagement-ivy" % "1.3.4",
       "org.scalatest" %% "scalatest" % "3.2.20" % Test
     )
